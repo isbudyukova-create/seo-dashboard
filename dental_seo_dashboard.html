@@ -254,7 +254,7 @@ body {
 }
 .ads-table tr:last-child td { border-bottom: none; }
 .ads-table tr:hover td { background: var(--surface2); }
-.budget-cell { display: flex; align-items: center; gap: 8px; }
+.budget-cell { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
 .budget-bar-bg { width: 60px; height: 4px; background: var(--border); border-radius: 2px; flex-shrink: 0; }
 .budget-bar { height: 4px; border-radius: 2px; background: var(--text); }
 
@@ -345,7 +345,7 @@ body {
             <th style="width:100px">Объявлений</th>
             <th style="width:100px">Запросов</th>
             <th style="width:80px">Трафик</th>
-            <th style="width:180px">Бюджет / мес</th>
+            <th style="width:180px">Бюджет</th>
           </tr>
         </thead>
         <tbody id="ads-body"></tbody>
