@@ -267,6 +267,8 @@ body {
 }
 .ads-table tr:last-child td { border-bottom: none; }
 .ads-table tr:hover td { background: var(--surface2); }
+.ads-row-empty td { opacity: 0.4; }
+.ads-row-empty td strong { font-weight: 400; }
 .budget-cell { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
 .budget-bar-bg { width: 60px; height: 4px; background: var(--border); border-radius: 2px; flex-shrink: 0; }
 .budget-bar { height: 4px; border-radius: 2px; background: var(--accent); }
@@ -695,7 +697,7 @@ function renderAds() {
     const budget = parseBudget(r.budget);
     const pct = Math.round(budget / maxBudget * 100);
     const budgetStr = budget ? budget.toLocaleString('ru-RU') + ' ₽' : '—';
-    return `<tr>
+    return `<tr class="${!budget ? 'ads-row-empty' : ''}">
       <td><strong>${(r.domain || '—').split('—')[0].trim()}</strong></td>
       <td>${r.ads || '—'}</td>
       <td>${r.queries || '—'}</td>
