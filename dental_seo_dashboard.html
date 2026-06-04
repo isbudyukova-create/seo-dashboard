@@ -263,6 +263,22 @@ body {
 
 /* Divider */
 .divider { height: 1px; background: var(--border); margin: 4px 0 24px; }
+
+/* Brand switcher */
+.brand-switcher { display: flex; gap: 4px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 3px; }
+.brand-btn {
+  padding: 5px 14px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  font-family: 'Golos Text', sans-serif;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.brand-btn:hover { color: var(--text); }
+.brand-btn.active { background: var(--surface); color: var(--accent); font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
 </style>
 </head>
 <body>
@@ -272,11 +288,17 @@ body {
     <div class="header-top">
       <div>
         <div class="brand-name">SEO-отчёт</div>
-        <div class="header-title">dental.sadkomed.ru</div>
+        <div class="header-title" id="header-title">dental.sadkomed.ru</div>
       </div>
-      <div class="loading-badge" id="status-badge">
-        <span class="loading-dot"></span>
-        Загружаем данные...
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="brand-switcher">
+          <button class="brand-btn active" onclick="switchBrand(0, this)">Садко</button>
+          <button class="brand-btn" onclick="switchBrand(1, this)">Здоровенок</button>
+        </div>
+        <div class="loading-badge" id="status-badge">
+          <span class="loading-dot"></span>
+          Загружаем данные...
+        </div>
       </div>
     </div>
     <div class="month-tabs" id="month-tabs"></div>
@@ -356,7 +378,11 @@ body {
 </div>
 
 <script>
-const SHEET_ID = '18_wK4ym4OvY5YuCtTI7ZmEZhbrxXdGcflIL8sIQxxMo';
+const BRANDS = [
+  { name: 'Садко', title: 'dental.sadkomed.ru', sheetId: '18_wK4ym4OvY5YuCtTI7ZmEZhbrxXdGcflIL8sIQxxMo' },
+  { name: 'Здоровенок', title: 'zdorovenok.ru', sheetId: '1CsSX3R0eA0mHTM8R3VDTyjenU_buDnQwlgZ6xPVkCK0' },
+];
+let activeBrand = 0;
 const SHEETS = { positions: 'positions', queries: 'queries', ads: 'ads' };
 
 let allData = { positions: [], queries: [], ads: [] };
@@ -367,7 +393,20 @@ let posChart = null, trafficChart = null;
 const ROWS_DEFAULT = 15;
 
 function sheetUrl(name) {
-  return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(name)}`;
+  return `https://docs.google.com/spreadsheets/d/${BRANDS[activeBrand].sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(name)}`;
+}
+
+async function switchBrand(idx, btn) {
+  if (idx === activeBrand) return;
+  activeBrand = idx;
+  document.querySelectorAll('.brand-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('header-title').textContent = BRANDS[idx].title;
+  activeMonth = null;
+  posFilter = 0;
+  showAll = false;
+  document.querySelectorAll('.pos-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
+  await init();
 }
 
 async function fetchSheet(name) {
@@ -649,6 +688,43 @@ function setStatus(text, loading) {
     : `<span style="width:6px;height:6px;border-radius:50%;background:#2d6a4f;display:inline-block"></span>${text}`;
 }
 
+const MOCK_DATA = {
+  positions: [
+    { date: '01.01.2025', top1: '12', top5: '34', top10: '67', traffic: '1840' },
+    { date: '01.02.2025', top1: '15', top5: '38', top10: '72', traffic: '2100' },
+    { date: '01.03.2025', top1: '14', top5: '41', top10: '78', traffic: '2340' },
+    { date: '01.04.2025', top1: '18', top5: '45', top10: '83', traffic: '2780' },
+    { date: '01.05.2025', top1: '21', top5: '52', top10: '91', traffic: '3120' },
+    { date: '01.06.2025', top1: '19', top5: '49', top10: '88', traffic: '2950' },
+  ],
+  queries: [
+    { date: '01.06.2025', position: '1', query: 'стоматология садко', frequency: '4200', page: 'https://dental.sadkomed.ru/' },
+    { date: '01.06.2025', position: '1', query: 'имплантация зубов нижний новгород', frequency: '3100', page: 'https://dental.sadkomed.ru/implantaciya/' },
+    { date: '01.06.2025', position: '1', query: 'лечение зубов под микроскопом', frequency: '1850', page: 'https://dental.sadkomed.ru/mikroskop/' },
+    { date: '01.06.2025', position: '1', query: 'садко стоматология официальный сайт', frequency: '1640', page: 'https://dental.sadkomed.ru/' },
+    { date: '01.06.2025', position: '1', query: 'зубной врач нижний новгород недорого', frequency: '1200', page: 'https://dental.sadkomed.ru/ceny/' },
+    { date: '01.06.2025', position: '2', query: 'виниры на зубы цена нн', frequency: '2600', page: 'https://dental.sadkomed.ru/viniry/' },
+    { date: '01.06.2025', position: '2', query: 'брекеты взрослым нижний новгород', frequency: '1970', page: 'https://dental.sadkomed.ru/brekety/' },
+    { date: '01.06.2025', position: '2', query: 'детская стоматология садко', frequency: '1430', page: 'https://dental.sadkomed.ru/deti/' },
+    { date: '01.06.2025', position: '2', query: 'лечение кариеса без боли нн', frequency: '1180', page: 'https://dental.sadkomed.ru/karies/' },
+    { date: '01.06.2025', position: '2', query: 'имплантация all on 4 нижний новгород', frequency: '870', page: 'https://dental.sadkomed.ru/all-on-4/' },
+    { date: '01.06.2025', position: '3', query: 'отбеливание зубов zoom 4', frequency: '2200', page: 'https://dental.sadkomed.ru/otbelivanie/' },
+    { date: '01.06.2025', position: '3', query: 'протезирование зубов нн', frequency: '1750', page: 'https://dental.sadkomed.ru/protezirovanie/' },
+    { date: '01.06.2025', position: '3', query: 'удаление зуба мудрости нижний новгород', frequency: '1320', page: 'https://dental.sadkomed.ru/udalenie/' },
+    { date: '01.06.2025', position: '3', query: 'пародонтология лечение десен', frequency: '980', page: 'https://dental.sadkomed.ru/parodontologiya/' },
+    { date: '01.06.2025', position: '3', query: 'элайнеры invisalign нижний новгород', frequency: '760', page: 'https://dental.sadkomed.ru/elainery/' },
+    { date: '01.06.2025', position: '3', query: 'коронки на зубы цена нн', frequency: '640', page: 'https://dental.sadkomed.ru/koronki/' },
+  ],
+  ads: [
+    { date: '01.06.2025', domain: 'identastom.ru', ads: '47', queries: '312', traffic: '5200', budget: '184000' },
+    { date: '01.06.2025', domain: 'stom-nn.ru', ads: '38', queries: '274', traffic: '4100', budget: '142000' },
+    { date: '01.06.2025', domain: 'denta-lux.ru', ads: '29', queries: '198', traffic: '2900', budget: '98000' },
+    { date: '01.06.2025', domain: 'smileclinic-nn.ru', ads: '21', queries: '145', traffic: '1850', budget: '67000' },
+    { date: '01.06.2025', domain: 'nn-implant.ru', ads: '15', queries: '97', traffic: '1100', budget: '41000' },
+    { date: '01.06.2025', domain: 'белаязубная.рф', ads: '11', queries: '74', traffic: '780', budget: '28000' },
+  ],
+};
+
 async function init() {
   try {
     const [positions, queries, ads] = await Promise.all([
@@ -657,20 +733,24 @@ async function init() {
       fetchSheet('ads'),
     ]);
 
-    allData = { positions, queries, ads };
+    const hasData = positions.length > 0;
+    allData = hasData ? { positions, queries, ads } : MOCK_DATA;
 
-    const months = getMonths(positions);
+    const months = getMonths(allData.positions);
     if (!months.length) {
       setStatus('Нет данных', false);
       return;
     }
 
     activeMonth = months[months.length - 1];
-    setStatus('Данные обновлены', false);
+    setStatus(hasData ? 'Данные обновлены' : 'Демо-данные', false);
     renderAll();
   } catch (e) {
-    setStatus('Ошибка загрузки', false);
-    console.error(e);
+    allData = MOCK_DATA;
+    const months = getMonths(allData.positions);
+    activeMonth = months[months.length - 1];
+    setStatus('Демо-данные', false);
+    renderAll();
   }
 }
 
