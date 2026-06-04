@@ -1073,9 +1073,9 @@ function setStatus(text, loading) {
 // ── Категории страниц ─────────────────────────────────────────
 const PAGE_CATEGORIES = {
   contacts:  { pattern: /\/contacts\//i,                color: 'cat-contacts' },
-  news:      { pattern: /\/novosti\//i,                  color: 'cat-news' },
+  news:      { pattern: /\/(novosti|news)\//i,            color: 'cat-news' },
   questions: { pattern: /\/voprosy\//i,                  color: 'cat-questions' },
-  articles:  { pattern: /\/(stati|blog|articles)\//i,    color: 'cat-articles' },
+  articles:  { pattern: /\/(stati|blog|articles|article)\//i, color: 'cat-articles' },
   services:  { pattern: /./,                             color: 'cat-services' }, // всё остальное
 };
 
