@@ -1183,10 +1183,13 @@ function renderMetrikaTraffic() {
     </div>`;
   }).join('');
 
-  // Графики
-  const labels = mMonths.map(d => formatMonth(d));
-  const visits = mMonths.map(d => { const r = mRowsForMonth(rows, d)[0]; return r ? parseFloat(r.visits) : null; });
-  const pageviews = mMonths.map(d => { const r = mRowsForMonth(rows, d)[0]; return r ? parseFloat(r.pageviews) : null; });
+  // Графики — последние 12 месяцев до активного включительно, без нулевых
+  const activeIdx = mMonths.findIndex(m => formatMonth(m) === formatMonth(activeMonth));
+  const lineMonths = mMonths.slice(Math.max(0, activeIdx - 11), activeIdx + 1)
+    .filter(d => { const r = mRowsForMonth(rows, d)[0]; return r && (parseFloat(r.visits) || 0) > 0; });
+  const labels = lineMonths.map(d => formatMonth(d));
+  const visits = lineMonths.map(d => { const r = mRowsForMonth(rows, d)[0]; return r ? parseFloat(r.visits) : null; });
+  const pageviews = lineMonths.map(d => { const r = mRowsForMonth(rows, d)[0]; return r ? parseFloat(r.pageviews) : null; });
   const gridColor = '#e2e2f0', labelColor = '#7b7b9d';
   const chartOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11 } } }, y: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11 } } } } };
 
@@ -1212,14 +1215,15 @@ function renderMetrikaTraffic() {
       plugins: { legend: { display: false } },
       scales: {
         x: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11, family: 'Golos Text' } } },
-        y: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11, family: 'Golos Text' } }, beginAtZero: true }
+        y: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11, family: 'Golos Text' } }, beginAtZero: true, grace: '15%' }
       }
     }
   });
 
-  // График год к году: текущий и прошлый месяц vs те же месяцы год назад
+  // График год к году: 3 месяца (2 назад, прошлый, текущий) vs те же месяцы год назад
   const yoyPrevM = prevMonth(mMonths, activeMonth);
-  const yoyPairs = [yoyPrevM, activeMonth].filter(Boolean);
+  const yoyPrevPrevM = yoyPrevM ? prevMonth(mMonths, yoyPrevM) : null;
+  const yoyPairs = [yoyPrevPrevM, yoyPrevM, activeMonth].filter(Boolean);
   const yoyLabels = yoyPairs.map(d => formatMonth(d).split(' ')[0]); // только название месяца
 
   const getVal = (month) => {
@@ -1274,7 +1278,7 @@ function renderMetrikaTraffic() {
       },
       scales: {
         x: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 12, family: 'Golos Text' } } },
-        y: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11, family: 'Golos Text' } }, beginAtZero: true }
+        y: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11, family: 'Golos Text' } }, beginAtZero: true, grace: '15%' }
       }
     }
   });
