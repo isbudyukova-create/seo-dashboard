@@ -280,6 +280,50 @@ body {
 /* Divider */
 .divider { height: 1px; background: var(--border); margin: 4px 0 24px; }
 
+/* Column hints */
+.th-hint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--border);
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 600;
+  cursor: default;
+  position: relative;
+  vertical-align: middle;
+  margin-left: 3px;
+  transition: background 0.15s;
+}
+.th-hint:hover { background: var(--accent); color: #fff; }
+.th-hint::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 400;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  white-space: normal;
+  width: 260px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 99;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  line-height: 1.5;
+}
+.th-hint:hover::after { opacity: 1; }
+
 /* Back to top */
 .back-to-top {
   position: fixed;
@@ -403,10 +447,10 @@ body {
         <thead>
           <tr>
             <th>Домен</th>
-            <th style="width:100px">Объявлений</th>
-            <th style="width:100px">Запросов</th>
-            <th style="width:80px">Трафик</th>
-            <th style="width:180px">Бюджет</th>
+            <th style="width:100px">Объявлений <span class="th-hint" data-tip="Количество объявлений найденного сайта конкурента в контекстной рекламе">?</span></th>
+            <th style="width:100px">Запросов <span class="th-hint" data-tip="Количество запросов, по которым показываются объявления найденного сайта">?</span></th>
+            <th style="width:80px">Трафик <span class="th-hint" data-tip="Ориентировочный объём ежесуточного трафика из контекста без учёта таргетинга. Рассчитывается как произведение точной частотности на прогноз CTR, делённое на 30 дней">?</span></th>
+            <th style="width:180px">Бюджет <span class="th-hint" data-tip="Ориентировочная сумма, которую сайт тратит в месяц на рекламу в Яндекс.Директ. Данные собираются из инструмента «Прогноз бюджета» на основании запросов, по которым сайт показывался в рекламной выдаче">?</span></th>
           </tr>
         </thead>
         <tbody id="ads-body"></tbody>
