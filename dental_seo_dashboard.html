@@ -73,6 +73,20 @@ body {
 @keyframes pulse { 0%,100%{opacity:0.3} 50%{opacity:1} }
 
 /* Month tabs */
+.month-tabs-wrap {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--bg);
+  padding: 10px 0;
+  margin: -10px 0 0;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.month-tabs-wrap.scrolled {
+  border-bottom-color: var(--border);
+  box-shadow: 0 4px 16px rgba(26,26,61,0.06);
+}
 .month-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
 .month-tab {
   padding: 7px 16px;
@@ -387,7 +401,9 @@ body {
         </div>
       </div>
     </div>
-    <div class="month-tabs" id="month-tabs"></div>
+    <div class="month-tabs-wrap" id="month-tabs-wrap">
+      <div class="month-tabs" id="month-tabs"></div>
+    </div>
   </div>
 
   <div class="section">
@@ -891,8 +907,10 @@ init();
 
 <script>
   const _btn = document.getElementById('back-to-top');
+  const _wrap = document.getElementById('month-tabs-wrap');
   window.addEventListener('scroll', () => {
     _btn.classList.toggle('visible', window.scrollY > 300);
+    _wrap.classList.toggle('scrolled', window.scrollY > 60);
   });
 </script>
 </body>
