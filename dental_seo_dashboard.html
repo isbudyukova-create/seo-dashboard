@@ -665,6 +665,7 @@ function sheetUrl(name) {
 
 async function switchBrand(idx, btn) {
   if (idx === activeBrand) return;
+  const savedMonthLabel = activeMonth ? formatMonth(activeMonth) : null;
   activeBrand = idx;
   document.querySelectorAll('.brand-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
@@ -675,6 +676,12 @@ async function switchBrand(idx, btn) {
   adsShowAll = false;
   document.querySelectorAll('.pos-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
   await init();
+  // восстанавливаем месяц если такой есть у нового бренда
+  if (savedMonthLabel) {
+    const months = getAllMonths();
+    const found = months.find(m => formatMonth(m) === savedMonthLabel);
+    if (found) { activeMonth = found; renderMonthTabs(months); renderAll(); }
+  }
 }
 
 async function fetchSheet(name) {
@@ -1364,6 +1371,25 @@ function renderMetrikaPages() {
   rows.sort((a, b) => (parseFloat(b.visits)||0) - (parseFloat(a.visits)||0));
 
   document.getElementById('metrika-pages-count').textContent = `${rows.length} страниц`;
+
+  // Считаем количество страниц по категориям и обновляем кнопки
+  const catCounts = { services: 0, news: 0, questions: 0, contacts: 0, articles: 0 };
+  rows.forEach(r => { const cat = getPageCat(r.page || '/'); catCounts[cat] = (catCounts[cat] || 0) + 1; });
+  const catLabels = { services: 'Услуги', news: 'Новости', questions: 'Вопросы', contacts: 'Контакты', articles: 'Статьи' };
+  document.querySelectorAll('.page-cat-btn').forEach(btn => {
+    const cat = btn.dataset.cat;
+    const dot = btn.querySelector('.cat-dot');
+    const count = catCounts[cat] || 0;
+    btn.innerHTML = '';
+    if (dot) btn.appendChild(dot);
+    btn.appendChild(document.createTextNode(catLabels[cat]));
+    if (count > 0) {
+      const badge = document.createElement('span');
+      badge.style.cssText = 'margin-left:4px;font-size:11px;opacity:0.65;font-weight:400';
+      badge.textContent = count;
+      btn.appendChild(badge);
+    }
+  });
 
   // Строим рейтинг предыдущего месяца: path → rank (1-based)
   const prevRankMap = {};
