@@ -696,7 +696,7 @@ function renderAds() {
     const pct = Math.round(budget / maxBudget * 100);
     const budgetStr = budget ? budget.toLocaleString('ru-RU') + ' ₽' : '—';
     return `<tr>
-      <td><strong>${r.domain || '—'}</strong></td>
+      <td><strong>${(r.domain || '—').split('—')[0].trim()}</strong></td>
       <td>${r.ads || '—'}</td>
       <td>${r.queries || '—'}</td>
       <td>${r.traffic || '—'}</td>
