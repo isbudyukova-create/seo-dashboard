@@ -8,19 +8,19 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
 :root {
-  --bg: #f4f2ee;
+  --bg: #f5f5fb;
   --surface: #ffffff;
-  --surface2: #f9f8f5;
-  --border: #e5e2db;
-  --text: #1a1917;
-  --muted: #7a776f;
-  --accent: #1a1917;
-  --green: #2d6a4f;
-  --green-bg: #e8f5ef;
+  --surface2: #f0f0f9;
+  --border: #e2e2f0;
+  --text: #1a1a3d;
+  --muted: #7b7b9d;
+  --accent: #3d3dc8;
+  --green: #2a6e52;
+  --green-bg: #e6f4ee;
   --red: #9b2335;
   --red-bg: #fdf0f0;
-  --blue: #1a3a5c;
-  --blue-bg: #eef3f9;
+  --blue: #3d3dc8;
+  --blue-bg: #eeeeff;
   --radius: 12px;
   --radius-sm: 8px;
 }
@@ -87,8 +87,8 @@ body {
 }
 .month-tab:hover { border-color: var(--text); color: var(--text); }
 .month-tab.active {
-  background: var(--text);
-  border-color: var(--text);
+  background: var(--accent);
+  border-color: var(--accent);
   color: #fff;
 }
 
@@ -175,7 +175,7 @@ body {
   cursor: pointer;
   font-family: 'Golos Text', sans-serif;
 }
-.pos-btn.active { background: var(--text); color: #fff; border-color: var(--text); }
+.pos-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 .queries-table { width: 100%; border-collapse: collapse; }
 .queries-table th {
   text-align: left;
@@ -211,7 +211,7 @@ body {
 .freq-bar-wrap { display: flex; align-items: center; gap: 8px; }
 .freq-num { font-size: 12px; color: var(--muted); min-width: 52px; text-align: right; }
 .freq-bar-bg { flex: 1; height: 4px; background: var(--border); border-radius: 2px; max-width: 80px; }
-.freq-bar { height: 4px; background: var(--text); border-radius: 2px; }
+.freq-bar { height: 4px; background: var(--accent); border-radius: 2px; }
 .query-link { color: var(--muted); font-size: 11px; text-decoration: none; }
 .query-link:hover { color: var(--text); }
 .show-more-btn {
@@ -256,7 +256,7 @@ body {
 .ads-table tr:hover td { background: var(--surface2); }
 .budget-cell { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
 .budget-bar-bg { width: 60px; height: 4px; background: var(--border); border-radius: 2px; flex-shrink: 0; }
-.budget-bar { height: 4px; border-radius: 2px; background: var(--text); }
+.budget-bar { height: 4px; border-radius: 2px; background: var(--accent); }
 
 /* Error / empty */
 .error-msg { padding: 40px; text-align: center; color: var(--muted); font-size: 14px; }
@@ -520,9 +520,9 @@ function renderCharts(months) {
     data: {
       labels,
       datasets: [
-        { label: 'Топ 1', data: top1, borderColor: '#1a1917', backgroundColor: 'transparent', tension: 0.3, pointRadius: 4, borderWidth: 2, pointBackgroundColor: '#1a1917' },
-        { label: 'Топ 5', data: top5, borderColor: '#9b8f7e', backgroundColor: 'transparent', tension: 0.3, pointRadius: 4, borderWidth: 1.5, borderDash: [4,3], pointBackgroundColor: '#9b8f7e' },
-        { label: 'Топ 10', data: top10, borderColor: '#ccc8c0', backgroundColor: 'transparent', tension: 0.3, pointRadius: 3, borderWidth: 1, borderDash: [2,4], pointBackgroundColor: '#ccc8c0' },
+        { label: 'Топ 1', data: top1, borderColor: '#3d3dc8', backgroundColor: 'transparent', tension: 0.3, pointRadius: 4, borderWidth: 2, pointBackgroundColor: '#3d3dc8' },
+        { label: 'Топ 5', data: top5, borderColor: '#8b8bdd', backgroundColor: 'transparent', tension: 0.3, pointRadius: 4, borderWidth: 1.5, borderDash: [4,3], pointBackgroundColor: '#8b8bdd' },
+        { label: 'Топ 10', data: top10, borderColor: '#c4c4ee', backgroundColor: 'transparent', tension: 0.3, pointRadius: 3, borderWidth: 1, borderDash: [2,4], pointBackgroundColor: '#c4c4ee' },
       ]
     },
     options: {
@@ -540,7 +540,7 @@ function renderCharts(months) {
     type: 'bar',
     data: {
       labels,
-      datasets: [{ label: 'Трафик', data: traffic, backgroundColor: '#e5e2db', borderColor: '#1a1917', borderWidth: 1 }]
+      datasets: [{ label: 'Трафик', data: traffic, backgroundColor: '#c4c4ee', borderColor: '#3d3dc8', borderWidth: 1 }]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
