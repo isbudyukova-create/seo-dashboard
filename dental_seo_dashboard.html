@@ -1341,12 +1341,27 @@ function renderMetrikaAdv() {
 
   rows.sort((a, b) => (parseFloat(b.visits)||0) - (parseFloat(a.visits)||0));
 
+  const ADV_ICONS = {
+    'яндекс': 'icons/direct.yandex.png',
+    'vk':     'icons/ads.vk.png',
+    'google': 'icons/google.png',
+    'другая': 'icons/other.png',
+  };
+  function getAdvIcon(name) {
+    if (!name) return '';
+    const lower = name.toLowerCase();
+    for (const [key, src] of Object.entries(ADV_ICONS)) {
+      if (lower.includes(key)) return `<img src="${src}" style="width:16px;height:16px;object-fit:contain;margin-right:6px;vertical-align:middle;flex-shrink:0">`;
+    }
+    return '';
+  }
+
   tbody.innerHTML = rows.map(r => {
     const prev = prevRows.find(p => p.advSystem === r.advSystem);
     const v = parseFloat(r.visits) || 0;
     const prevV = prev ? (parseFloat(prev.visits) || 0) : null;
     return `<tr>
-      <td>${r.advSystem || '—'}</td>
+      <td><div style="display:flex;align-items:center">${getAdvIcon(r.advSystem)}${r.advSystem || '—'}</div></td>
       <td>${v.toLocaleString('ru-RU')}${prevV !== null ? metrikaDelta(v, prevV) : ''}</td>
       <td>${parseFloat(r.users).toLocaleString('ru-RU') || '—'}</td>
       <td>${parseFloat(r.bounceRate).toFixed(1) || '—'}%</td>
