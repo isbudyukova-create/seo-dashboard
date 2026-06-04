@@ -214,6 +214,19 @@ body {
 .freq-bar { height: 4px; background: var(--accent); border-radius: 2px; }
 .query-link { color: var(--muted); font-size: 11px; text-decoration: none; }
 .query-link:hover { color: var(--text); }
+.query-text { margin-right: 6px; }
+.query-change {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 5px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.query-up { background: var(--green-bg); color: var(--green); }
+.query-down { background: var(--red-bg); color: var(--red); }
+.query-new { background: var(--blue-bg); color: var(--accent); }
 .show-more-btn {
   width: 100%;
   padding: 12px;
@@ -612,6 +625,10 @@ function renderQueries() {
 
   document.getElementById('queries-count').textContent = `${rows.length} запросов`;
 
+  const months = getMonths(allData.queries);
+  const prev = prevMonth(months, activeMonth);
+  const prevRows = prev ? rowsForMonth(allData.queries, prev) : [];
+
   const maxFreq = Math.max(...rows.map(r => parseInt(r.frequency)||0), 1);
   const display = showAll ? rows : rows.slice(0, ROWS_DEFAULT);
 
@@ -627,11 +644,23 @@ function renderQueries() {
     const freq = parseInt(r.frequency) || 0;
     const pct = Math.round(freq / maxFreq * 100);
     const page = r.page || '';
-    const shortPage = page.replace('https://dental.sadkomed.ru', '') || '/';
+    const shortPage = page.replace('https://dental.sadkomed.ru', '').replace('https://zdorovenok.ru', '') || '/';
     const posClass = pos === 1 ? 'pos-1' : pos === 2 ? 'pos-2' : 'pos-3';
+
+    const prevRow = prevRows.find(p => (p.query || '').toLowerCase() === (r.query || '').toLowerCase());
+    let changeBadge = '';
+    if (!prevRow) {
+      changeBadge = `<span class="query-change query-new">новый</span>`;
+    } else {
+      const prevPos = parseInt(prevRow.position) || 0;
+      const delta = prevPos - pos; // положительное = поднялся
+      if (delta > 0) changeBadge = `<span class="query-change query-up">↑${delta}</span>`;
+      else if (delta < 0) changeBadge = `<span class="query-change query-down">↓${Math.abs(delta)}</span>`;
+    }
+
     return `<tr>
       <td><span class="pos-badge ${posClass}">${pos}</span></td>
-      <td>${r.query || '—'}</td>
+      <td><span class="query-text">${r.query || '—'}</span>${changeBadge}</td>
       <td>
         <div class="freq-bar-wrap">
           <span class="freq-num">${freq.toLocaleString('ru-RU')}</span>
