@@ -280,6 +280,29 @@ body {
 /* Divider */
 .divider { height: 1px; background: var(--border); margin: 4px 0 24px; }
 
+/* Back to top */
+.back-to-top {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(61,61,200,0.3);
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+  z-index: 100;
+}
+.back-to-top.visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+.back-to-top:hover { background: #2e2eb0; }
+
 /* Brand switcher */
 .brand-switcher { display: flex; gap: 4px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 3px; }
 .brand-btn {
@@ -816,6 +839,14 @@ async function init() {
 }
 
 init();
+</script>
+<button class="back-to-top" id="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Наверх">↑</button>
+
+<script>
+  const _btn = document.getElementById('back-to-top');
+  window.addEventListener('scroll', () => {
+    _btn.classList.toggle('visible', window.scrollY > 300);
+  });
 </script>
 </body>
 </html>
