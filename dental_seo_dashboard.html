@@ -266,6 +266,19 @@ body {
 .query-up { background: var(--green-bg); color: var(--green); }
 .query-down { background: var(--red-bg); color: var(--red); }
 .query-new { background: var(--blue-bg); color: var(--accent); }
+.visits-period-btn {
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: transparent;
+  font-family: 'Golos Text', sans-serif;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .15s;
+}
+.visits-period-btn:hover { border-color: var(--text); color: var(--text); }
+.visits-period-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
 .show-more-btn {
   width: 100%;
   padding: 12px;
@@ -547,12 +560,25 @@ tr.cat-articles  td { background: #f0f8f8 !important; }
     <div class="section-label">Посещаемость — Яндекс.Метрика</div>
     <div class="metrics-grid" id="metrika-traffic-metrics"></div>
     <div class="chart-card" style="margin-top:16px">
-      <div class="chart-card-title">Динамика визитов за год</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div class="chart-card-title" style="margin-bottom:0">Динамика визитов</div>
+        <div style="display:flex;gap:4px">
+          <button class="visits-period-btn active" data-months="12" onclick="setVisitsPeriod(12,this)">1 год</button>
+          <button class="visits-period-btn" data-months="6" onclick="setVisitsPeriod(6,this)">6 мес</button>
+          <button class="visits-period-btn" data-months="3" onclick="setVisitsPeriod(3,this)">3 мес</button>
+        </div>
+      </div>
       <div class="chart-wrap" style="height:240px"><canvas id="mVisitsLineChart"></canvas></div>
     </div>
-    <div class="chart-card" style="margin-top:16px">
-      <div class="chart-card-title">Сравнение год к году</div>
-      <div class="chart-wrap" style="height:240px"><canvas id="mYoYChart"></canvas></div>
+    <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="chart-card">
+        <div class="chart-card-title">Месяц к месяцу</div>
+        <div class="chart-wrap" style="height:220px"><canvas id="mMoMChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">Год к году</div>
+        <div class="chart-wrap" style="height:220px"><canvas id="mYoYChart"></canvas></div>
+      </div>
     </div>
     <div class="charts-grid" style="margin-top:16px">
       <div class="chart-card">
@@ -656,6 +682,7 @@ let activeMonth = null;
 let posFilter = 0;
 let showAll = false;
 let adsShowAll = false;
+let visitsPeriod = 12;
 let posChart = null, trafficChart = null;
 const ROWS_DEFAULT = 15;
 
@@ -929,6 +956,13 @@ function toggleAdsShowAll() {
   renderAds();
 }
 
+function setVisitsPeriod(months, btn) {
+  visitsPeriod = months;
+  document.querySelectorAll('.visits-period-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderMetrikaTraffic();
+}
+
 function renderQueries() {
   let rows = rowsForMonth(allData.queries, activeMonth);
   if (posFilter > 0) rows = rows.filter(r => parseInt(r.position) === posFilter);
@@ -1145,7 +1179,7 @@ function formatDuration(sec) {
 }
 
 // ── МЕТРИКА: Посещаемость ────────────────────────────────────
-let mVisitsLineChart = null, mYoYChart = null, mVisitsChart = null, mPageviewsChart = null;
+let mVisitsLineChart = null, mYoYChart = null, mMoMChart = null, mVisitsChart = null, mPageviewsChart = null;
 
 function renderMetrikaTraffic() {
   const rows = allData.metrika_traffic;
@@ -1183,9 +1217,9 @@ function renderMetrikaTraffic() {
     </div>`;
   }).join('');
 
-  // Графики — последние 12 месяцев до активного включительно, без нулевых
+  // Графики — последние N месяцев до активного включительно, без нулевых
   const activeIdx = mMonths.findIndex(m => formatMonth(m) === formatMonth(activeMonth));
-  const lineMonths = mMonths.slice(Math.max(0, activeIdx - 11), activeIdx + 1)
+  const lineMonths = mMonths.slice(Math.max(0, activeIdx - (visitsPeriod - 1)), activeIdx + 1)
     .filter(d => { const r = mRowsForMonth(rows, d)[0]; return r && (parseFloat(r.visits) || 0) > 0; });
   const labels = lineMonths.map(d => formatMonth(d));
   const visits = lineMonths.map(d => { const r = mRowsForMonth(rows, d)[0]; return r ? parseFloat(r.visits) : null; });
@@ -1220,67 +1254,56 @@ function renderMetrikaTraffic() {
     }
   });
 
-  // График год к году: 3 месяца (2 назад, прошлый, текущий) vs те же месяцы год назад
-  const yoyPrevM = prevMonth(mMonths, activeMonth);
-  const yoyPrevPrevM = yoyPrevM ? prevMonth(mMonths, yoyPrevM) : null;
-  const yoyPairs = [yoyPrevPrevM, yoyPrevM, activeMonth].filter(Boolean);
-  const yoyLabels = yoyPairs.map(d => formatMonth(d).split(' ')[0]); // только название месяца
-
   const getVal = (month) => {
     if (!month) return null;
     const r = mRowsForMonth(rows, month)[0];
     return r ? (parseFloat(r.visits) || 0) : null;
   };
 
-  const thisYearData = yoyPairs.map(d => getVal(d));
-  const lastYearData = yoyPairs.map(d => {
-    const ly = new Date(d.getFullYear() - 1, d.getMonth(), 1);
-    return getVal(ly);
+  const barOpts = (tooltipLabels) => ({
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: true, labels: { color: labelColor, font: { size: 11, family: 'Golos Text' }, boxWidth: 14, padding: 12 } },
+      tooltip: { callbacks: { title: (items) => tooltipLabels[items[0].dataIndex] || '' } }
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: labelColor, font: { size: 12, family: 'Golos Text' } } },
+      y: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11, family: 'Golos Text' } }, beginAtZero: true, grace: '15%' }
+    }
   });
 
+  // График 1: текущий месяц vs предыдущий
+  const prevM2 = prevMonth(mMonths, activeMonth);
+  const momLabels = [prevM2 ? formatMonth(prevM2).split(' ')[0] : '—', activeMonth ? formatMonth(activeMonth).split(' ')[0] : '—'];
+  const momTooltips = [prevM2 ? formatMonth(prevM2) : '', activeMonth ? formatMonth(activeMonth) : ''];
+  const momData = [getVal(prevM2), getVal(activeMonth)];
+
+  if (mMoMChart) mMoMChart.destroy();
+  mMoMChart = new Chart(document.getElementById('mMoMChart'), {
+    type: 'bar',
+    data: {
+      labels: momLabels,
+      datasets: [{ label: 'Визиты', data: momData, backgroundColor: ['rgba(61,61,200,0.35)', '#3d3dc8'], borderRadius: 4 }]
+    },
+    options: barOpts(momTooltips)
+  });
+
+  // График 2: текущий месяц vs тот же месяц год назад
+  const prevYearM = activeMonth ? new Date(activeMonth.getFullYear() - 1, activeMonth.getMonth(), 1) : null;
   const curYear = activeMonth ? activeMonth.getFullYear() : '';
-  const yoyPrevYear = activeMonth ? activeMonth.getFullYear() - 1 : '';
+  const prevYearNum = activeMonth ? activeMonth.getFullYear() - 1 : '';
+  const yoyMonthName = activeMonth ? formatMonth(activeMonth).split(' ')[0] : '';
+  const yoyLabels2 = [`${yoyMonthName} ${prevYearNum}`, `${yoyMonthName} ${curYear}`];
+  const yoyData = [getVal(prevYearM), getVal(activeMonth)];
 
   if (mYoYChart) mYoYChart.destroy();
   mYoYChart = new Chart(document.getElementById('mYoYChart'), {
-    type: 'line',
+    type: 'bar',
     data: {
-      labels: yoyLabels,
-      datasets: [
-        {
-          label: String(curYear),
-          data: thisYearData,
-          borderColor: '#3d3dc8',
-          backgroundColor: 'rgba(61,61,200,0.06)',
-          tension: 0, pointRadius: 6, borderWidth: 2,
-          pointBackgroundColor: '#3d3dc8', fill: false,
-        },
-        {
-          label: String(yoyPrevYear),
-          data: lastYearData,
-          borderColor: '#8b8bdd',
-          backgroundColor: 'transparent',
-          tension: 0, pointRadius: 6, borderWidth: 1.5,
-          borderDash: [4, 3],
-          pointBackgroundColor: '#8b8bdd', fill: false,
-        }
-      ]
+      labels: yoyLabels2,
+      datasets: [{ label: 'Визиты', data: yoyData, backgroundColor: ['rgba(61,61,200,0.35)', '#3d3dc8'], borderRadius: 4 }]
     },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: true, labels: { color: labelColor, font: { size: 11, family: 'Golos Text' }, boxWidth: 20 } },
-        tooltip: {
-          callbacks: {
-            title: (items) => yoyPairs[items[0].dataIndex] ? formatMonth(yoyPairs[items[0].dataIndex]) : '',
-          }
-        }
-      },
-      scales: {
-        x: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 12, family: 'Golos Text' } } },
-        y: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11, family: 'Golos Text' } }, beginAtZero: true, grace: '15%' }
-      }
-    }
+    options: barOpts(yoyLabels2)
   });
 
   if (mVisitsChart) mVisitsChart.destroy();
