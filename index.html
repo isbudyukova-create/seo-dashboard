@@ -470,6 +470,7 @@ tr.cat-articles  td { background: #f0f8f8 !important; }
         <div class="brand-switcher">
           <button class="brand-btn active" onclick="switchBrand(0, this)">Стоматология</button>
           <button class="brand-btn" onclick="switchBrand(1, this)">Здоровенок</button>
+          <button class="brand-btn" onclick="switchBrand(2, this)">Дино</button>
         </div>
         <div class="loading-badge" id="status-badge">
           <span class="loading-dot"></span>
@@ -673,6 +674,7 @@ tr.cat-articles  td { background: #f0f8f8 !important; }
 const BRANDS = [
   { name: 'Садко', title: 'dental.sadkomed.ru', sheetId: '18_wK4ym4OvY5YuCtTI7ZmEZhbrxXdGcflIL8sIQxxMo', domain: 'https://dental.sadkomed.ru' },
   { name: 'Здоровенок', title: 'zdorovenok.ru', sheetId: '1CsSX3R0eA0mHTM8R3VDTyjenU_buDnQwlgZ6xPVkCK0', domain: 'https://zdorovenok.sadkomed.ru' },
+  { name: 'Дино', title: 'Дино', sheetId: '1rWn4O1OG4iQQVZakrHlfEhp0bkC0aqFXu0MjcFTfkQk', domain: '' },
 ];
 let activeBrand = 0;
 const SHEETS = { positions: 'positions', queries: 'queries', ads: 'ads' };
