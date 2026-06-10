@@ -385,31 +385,27 @@ tr.cat-questions td { background: #faf0ff !important; }
 tr.cat-contacts  td { background: #f0f8f4 !important; }
 tr.cat-articles  td { background: #f0f8f8 !important; }
 
-/* Column hints */
-.th-hint {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--border);
-  color: var(--muted);
-  font-size: 9px;
-  font-weight: 600;
-  cursor: default;
+
+/* Sortable table headers */
+.sortable-th { cursor: pointer; user-select: none; }
+.sortable-th:hover { color: var(--accent); }
+.sort-arrow { font-size: 9px; margin-left: 3px; opacity: 0.3; }
+.sort-arrow.active { opacity: 1; color: var(--accent); }
+
+/* Own brand row highlight */
+tr.row-own td { background: rgba(61,61,200,0.06) !important; }
+
+/* Inline tooltip without badge */
+.has-tip {
   position: relative;
-  vertical-align: middle;
-  margin-left: 3px;
-  transition: background 0.15s;
+  cursor: help;
 }
-.th-hint:hover { background: var(--accent); color: #fff; }
-.th-hint::after {
+.has-tip::after {
   content: attr(data-tip);
   position: absolute;
   top: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  transform: none;
   background: var(--text);
   color: #fff;
   font-size: 12px;
@@ -427,8 +423,7 @@ tr.cat-articles  td { background: #f0f8f8 !important; }
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   line-height: 1.5;
 }
-.th-hint:hover::after { opacity: 1; }
-.th-hint-left::after { left: auto; right: 0; transform: none; }
+.has-tip:hover::after { opacity: 1; }
 
 /* Back to top */
 .back-to-top {
@@ -500,7 +495,7 @@ tr.cat-articles  td { background: #f0f8f8 !important; }
   <div class="block-header">keys.so</div>
 
   <div class="section">
-    <div class="section-label">Позиции в поиске</div>
+    <div class="section-label">Запросы сайта в топе</div>
     <div class="metrics-grid" id="pos-metrics">
       <div class="metric-card"><div class="metric-card-label">Загрузка...</div></div>
     </div>
@@ -516,6 +511,32 @@ tr.cat-articles  td { background: #f0f8f8 !important; }
         <div class="chart-card-title">Органический трафик</div>
         <div class="chart-wrap"><canvas id="trafficChart" role="img" aria-label="Трафик по месяцам"></canvas></div>
       </div>
+    </div>
+  </div>
+
+  <!-- Конкуренты в органической выдаче -->
+  <div class="section" id="section-org-competitors">
+    <div class="section-label">Конкуренты в органической выдаче</div>
+    <div class="queries-card">
+      <div class="queries-header">
+        <span class="queries-title">Запросы конкурентов в поиске</span>
+        <span class="queries-count" id="org-competitors-count"></span>
+      </div>
+      <table class="queries-table">
+        <thead>
+          <tr id="org-competitors-head">
+            <th style="width:32px">#</th>
+            <th class="sortable-th" onclick="sortOrgBy('domain')">Домен<span class="sort-arrow" id="org-arrow-domain">▲</span></th>
+            <th style="width:70px" class="sortable-th" onclick="sortOrgBy('top1')">Топ 1<span class="sort-arrow" id="org-arrow-top1">▲</span></th>
+            <th style="width:70px" class="sortable-th" onclick="sortOrgBy('top5')">Топ 5<span class="sort-arrow" id="org-arrow-top5">▲</span></th>
+            <th style="width:70px" class="sortable-th" onclick="sortOrgBy('top10')">Топ 10<span class="sort-arrow active" id="org-arrow-top10">▼</span></th>
+            <th style="width:70px" class="sortable-th" onclick="sortOrgBy('top50')">Топ 50<span class="sort-arrow" id="org-arrow-top50">▲</span></th>
+            <th style="width:90px" class="sortable-th has-tip" onclick="sortOrgBy('traffic')" data-tip="Ориентировочный органический трафик в сутки">Трафик<span class="sort-arrow" id="org-arrow-traffic">▲</span></th>
+            <th style="width:80px" class="sortable-th" onclick="sortOrgBy('pages')">Страниц<span class="sort-arrow" id="org-arrow-pages">▲</span></th>
+          </tr>
+        </thead>
+        <tbody id="org-competitors-body"></tbody>
+      </table>
     </div>
   </div>
 
@@ -559,10 +580,10 @@ tr.cat-articles  td { background: #f0f8f8 !important; }
         <thead>
           <tr>
             <th>Домен</th>
-            <th style="width:100px">Объявлений <span class="th-hint" data-tip="Количество объявлений найденного сайта конкурента в контекстной рекламе">?</span></th>
-            <th style="width:100px">Запросов <span class="th-hint" data-tip="Количество запросов, по которым показываются объявления найденного сайта">?</span></th>
-            <th style="width:80px">Трафик <span class="th-hint th-hint-left" data-tip="Ориентировочный объём ежесуточного трафика из контекста без учёта таргетинга. Рассчитывается как произведение точной частотности на прогноз CTR, делённое на 30 дней">?</span></th>
-            <th style="width:180px">Бюджет <span class="th-hint th-hint-left" data-tip="Ориентировочная сумма, которую сайт тратит в месяц на рекламу в Яндекс.Директ. Данные собираются из инструмента «Прогноз бюджета» на основании запросов, по которым сайт показывался в рекламной выдаче">?</span></th>
+            <th style="width:100px" class="has-tip" data-tip="Количество объявлений найденного сайта конкурента в контекстной рекламе">Объявлений</th>
+            <th style="width:100px" class="has-tip" data-tip="Количество запросов, по которым показываются объявления найденного сайта">Запросов</th>
+            <th style="width:80px" class="has-tip" data-tip="Ориентировочный объём ежесуточного трафика из контекста без учёта таргетинга. Рассчитывается как произведение точной частотности на прогноз CTR, делённое на 30 дней">Трафик</th>
+            <th style="width:180px" class="has-tip" data-tip="Ориентировочная сумма, которую сайт тратит в месяц на рекламу в Яндекс.Директ. Данные собираются из инструмента «Прогноз бюджета» на основании запросов, по которым сайт показывался в рекламной выдаче">Бюджет</th>
           </tr>
         </thead>
         <tbody id="ads-body"></tbody>
@@ -575,7 +596,7 @@ tr.cat-articles  td { background: #f0f8f8 !important; }
 
   <!-- МЕТРИКА: Посещаемость -->
   <div class="section" id="section-metrika-traffic">
-    <div class="section-label">Посещаемость — Яндекс.Метрика</div>
+    <div class="section-label">Посещаемость</div>
     <div class="metrics-grid" id="metrika-traffic-metrics"></div>
     <div class="chart-card" style="margin-top:16px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
@@ -696,7 +717,7 @@ const BRANDS = [
 let activeBrand = 0;
 const SHEETS = { positions: 'positions', queries: 'queries', ads: 'ads' };
 
-let allData = { positions: [], queries: [], ads: [], metrika_traffic: [], metrika_sources: [], metrika_adv: [], metrika_pages: [], pages_map: [] };
+let allData = { positions: [], queries: [], ads: [], metrika_traffic: [], metrika_sources: [], metrika_adv: [], metrika_pages: [], pages_map: [], domains_map: [] };
 let activeMonth = null;
 let posFilter = 0;
 let showAll = false;
@@ -864,16 +885,82 @@ function renderAll() {
   renderCharts(posMonths);
   renderQueries();
   renderAds();
+  renderOrgCompetitors();
   renderMetrikaTraffic();
   renderMetrikaSources();
   renderMetrikaAdv();
   renderMetrikaPages();
 }
 
+let orgSort = { col: 'top10', dir: 'desc' };
+
+function sortOrgBy(col) {
+  if (orgSort.col === col) {
+    orgSort.dir = orgSort.dir === 'desc' ? 'asc' : 'desc';
+  } else {
+    orgSort.col = col;
+    orgSort.dir = col === 'domain' ? 'asc' : 'desc';
+  }
+  renderOrgCompetitors();
+}
+
+function renderOrgCompetitors() {
+  const brandDomain = BRANDS[activeBrand].title;
+  const allRows = rowsForMonth(allData.positions, activeMonth).filter(r => r.domain);
+  const section = document.getElementById('section-org-competitors');
+  const tbody = document.getElementById('org-competitors-body');
+  const countEl = document.getElementById('org-competitors-count');
+  if (!allRows.length) { section.style.display = 'none'; return; }
+  section.style.display = '';
+
+  const { col, dir } = orgSort;
+  allRows.sort((a, b) => {
+    let va = col === 'domain' ? (a[col] || '') : (parseInt(a[col]) || 0);
+    let vb = col === 'domain' ? (b[col] || '') : (parseInt(b[col]) || 0);
+    if (va < vb) return dir === 'asc' ? -1 : 1;
+    if (va > vb) return dir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  ['domain','top1','top5','top10','top50','traffic','pages'].forEach(c => {
+    const el = document.getElementById('org-arrow-' + c);
+    if (!el) return;
+    el.classList.toggle('active', c === col);
+    el.textContent = (c === col && dir === 'asc') ? '▲' : '▼';
+  });
+
+  countEl.textContent = allRows.length + ' сайтов';
+  tbody.innerHTML = allRows.map((r, i) => {
+    const isOwn = r.domain === brandDomain;
+    const traffic = parseInt(r.traffic) || 0;
+    return `<tr class="${isOwn ? 'row-own' : ''}">
+      <td>${i + 1}</td>
+      <td><a href="https://${r.domain}" target="_blank" class="page-title-link">${domainName(r.domain)}</a></td>
+      <td>${parseInt(r.top1)||0}</td>
+      <td>${parseInt(r.top5)||0}</td>
+      <td>${parseInt(r.top10)||0}</td>
+      <td>${parseInt(r.top50)||0}</td>
+      <td>${traffic.toLocaleString('ru-RU')}</td>
+      <td>${parseInt(r.pages)||0}</td>
+    </tr>`;
+  }).join('');
+}
+
+function domainName(domain) {
+  const entry = allData.domains_map.find(r => r.domain === domain);
+  return (entry && entry.name) ? entry.name : domain;
+}
+
+function brandRow(month) {
+  const domain = BRANDS[activeBrand].title;
+  const rows = rowsForMonth(allData.positions, month);
+  return rows.find(r => r.domain === domain) || rows[0];
+}
+
 function renderMetrics(months) {
-  const cur = rowsForMonth(allData.positions, activeMonth)[0];
+  const cur = brandRow(activeMonth);
   const prev = prevMonth(months, activeMonth);
-  const prevRow = prev ? rowsForMonth(allData.positions, prev)[0] : null;
+  const prevRow = prev ? brandRow(prev) : null;
 
   if (!cur) {
     document.getElementById('pos-metrics').innerHTML = '<div class="error-msg">Нет данных за этот месяц</div>';
@@ -897,11 +984,14 @@ function renderMetrics(months) {
       const diff = val - pval;
       if (diff > 0) delta = `<span class="delta up">↑ +${diff}</span>`;
       else if (diff < 0) delta = `<span class="delta down">↓ ${diff}</span>`;
-      else delta = `<span class="delta neutral">= без изм.</span>`;
+      else delta = '';
     }
+    const prefix = f.key === 'traffic' ? '≈' : '';
+    const labelClass = f.key === 'traffic' ? 'metric-card-label has-tip' : 'metric-card-label';
+    const tipData = f.key === 'traffic' ? ' data-tip="Ориентировочное количество пользователей из органического поиска в сутки"' : '';
     return `<div class="metric-card">
-      <div class="metric-card-label">${f.label}</div>
-      <div class="metric-card-value">${val.toLocaleString('ru-RU')}</div>
+      <div class="${labelClass}"${tipData}>${f.label}</div>
+      <div class="metric-card-value">${prefix}${val.toLocaleString('ru-RU')}</div>
       ${delta}
     </div>`;
   }).join('');
@@ -913,10 +1003,10 @@ function renderCharts(months) {
   const labelColor = '#7a776f';
 
   const labels = months.map(m => formatMonth(m));
-  const top1 = months.map(m => { const r = rowsForMonth(allData.positions, m)[0]; return r ? (parseInt(r.top1)||0) : null; });
-  const top5 = months.map(m => { const r = rowsForMonth(allData.positions, m)[0]; return r ? (parseInt(r.top5)||0) : null; });
-  const top10 = months.map(m => { const r = rowsForMonth(allData.positions, m)[0]; return r ? (parseInt(r.top10)||0) : null; });
-  const traffic = months.map(m => { const r = rowsForMonth(allData.positions, m)[0]; return r ? (parseInt(r.traffic)||0) : null; });
+  const top1 = months.map(m => { const r = brandRow(m); return r ? (parseInt(r.top1)||0) : null; });
+  const top5 = months.map(m => { const r = brandRow(m); return r ? (parseInt(r.top5)||0) : null; });
+  const top10 = months.map(m => { const r = brandRow(m); return r ? (parseInt(r.top10)||0) : null; });
+  const traffic = months.map(m => { const r = brandRow(m); return r ? (parseInt(r.traffic)||0) : null; });
 
   if (posChart) posChart.destroy();
   posChart = new Chart(document.getElementById('posChart'), {
@@ -1014,7 +1104,7 @@ function renderQueries() {
     const prevRow = prevRows.find(p => (p.query || '').toLowerCase() === (r.query || '').toLowerCase());
     let changeBadge = '';
     if (!prevRow) {
-      changeBadge = `<span class="query-change query-new">новый</span>`;
+      changeBadge = `<span class="query-change query-new">new</span>`;
     } else {
       const prevPos = parseInt(prevRow.position) || 0;
       const delta = prevPos - pos; // положительное = поднялся
@@ -1089,7 +1179,7 @@ function renderAds() {
     })() : '';
 
     return `<tr class="${!budget ? 'ads-row-empty' : ''}">
-      <td>${domain || '—'}</td>
+      <td>${domainName(domain) || '—'}</td>
       <td>${adsVal || '—'}${prevAds !== null ? adsDelta(adsVal, prevAds) : ''}</td>
       <td>${r.queries || '—'}</td>
       <td>${trafficVal || '—'}${prevTraffic !== null ? adsDelta(trafficVal, prevTraffic) : ''}</td>
@@ -1232,7 +1322,7 @@ function renderMetrikaTraffic() {
     return `<div class="metric-card">
       <div class="metric-card-label">${m.label}</div>
       <div class="metric-card-value">${display}</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">${d1 || '<span class="delta neutral">= без изм.</span>'}${d2}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">${d1}${d2}</div>
     </div>`;
   }).join('');
 
@@ -1466,7 +1556,7 @@ function renderMetrikaPages() {
 
     let changeBadge = '';
     if (isNew) {
-      changeBadge = `<span class="query-change query-new">новая</span>`;
+      changeBadge = `<span class="query-change query-new">new</span>`;
     } else if (path in prevRankMap) {
       const delta = prevRankMap[path] - curRank; // + = поднялась, - = упала
       if (delta > 0) changeBadge = `<span class="query-change query-up">↑${delta}</span>`;
@@ -1490,7 +1580,7 @@ function renderMetrikaPages() {
 
 async function init() {
   try {
-    const [positions, queries, ads, metrika_traffic, metrika_sources, metrika_adv, metrika_pages, pages_map] = await Promise.all([
+    const [positions, queries, ads, metrika_traffic, metrika_sources, metrika_adv, metrika_pages, pages_map, domains_map] = await Promise.all([
       fetchSheet('positions'),
       fetchSheet('queries'),
       fetchSheet('ads'),
@@ -1499,9 +1589,10 @@ async function init() {
       fetchSheet('metrika_adv').catch(() => []),
       fetchSheet('metrika_pages').catch(() => []),
       fetchSheet('pages_map').catch(() => []),
+      fetchSheet('domains_map').catch(() => []),
     ]);
 
-    allData = { positions, queries, ads, metrika_traffic, metrika_sources, metrika_adv, metrika_pages, pages_map };
+    allData = { positions, queries, ads, metrika_traffic, metrika_sources, metrika_adv, metrika_pages, pages_map, domains_map };
 
     const months = getMonths(allData.positions);
     if (!months.length) {
