@@ -554,8 +554,8 @@ tr.row-own td { background: rgba(61,61,200,0.06) !important; }
 /* Row number cell in ranked tables */
 .row-num { color: var(--muted); font-size: 12px; text-align: center; }
 
-/* Week header row in direct weekly table */
-.direct-week-sup { color: var(--muted); font-size: 10px; padding-bottom: 2px; border-bottom: none; }
+/* Week number label inside weekly table header cell */
+.direct-week-sup { display: block; color: var(--muted); font-size: 10px; margin-bottom: 2px; }
 </style>
 </head>
 <body>
@@ -837,7 +837,7 @@ tr.row-own td { background: rgba(61,61,200,0.06) !important; }
     <!-- Таблица: по неделям активного месяца -->
     <div class="queries-card" style="margin-top:16px">
       <div class="queries-header">
-        <span class="queries-title">По неделям — <span id="direct-weekly-month-label"></span></span>
+        <span class="queries-title">Показатели по неделям — <span id="direct-weekly-month-label"></span></span>
       </div>
       <div style="overflow-x:auto">
         <table class="direct-pivot-table" id="direct-weekly-table"></table>
@@ -1979,7 +1979,20 @@ function renderDirectMonthlyTable(months, monthlyData) {
     </tr>`;
   }).join('');
 
-  table.innerHTML = `<thead><tr><th></th>${headerCells}</tr></thead><tbody>${rows}</tbody>`;
+  const allChecked = DIRECT_METRICS.every(m => directChecked.has(m.key));
+  const selectAllCb = `<input type="checkbox" class="direct-cb" id="direct-cb-all"
+    ${allChecked ? 'checked' : ''}
+    style="${allChecked ? `background:var(--accent);border-color:var(--accent)` : ''}"
+    onchange="toggleAllDirectMetrics(this)">`;
+  table.innerHTML = `<thead><tr><th>${selectAllCb}</th>${headerCells}</tr></thead><tbody>${rows}</tbody>`;
+}
+
+function toggleAllDirectMetrics(checkbox) {
+  const toCheck = checkbox.checked;
+  checkbox.style.background    = toCheck ? 'var(--accent)' : '';
+  checkbox.style.borderColor   = toCheck ? 'var(--accent)' : '';
+  DIRECT_METRICS.forEach(m => toCheck ? directChecked.add(m.key) : directChecked.delete(m.key));
+  renderDirectStats();
 }
 
 function renderDirectWeeklyTable() {
@@ -1992,8 +2005,9 @@ function renderDirectWeeklyTable() {
     return;
   }
 
-  const weekNums = weeks.map((_, i) => `<th class="direct-week-sup">${i + 1} неделя</th>`).join('');
-  const headerCells = weeks.map(w => `<th>${w.label}</th>`).join('');
+  const weekHeaders = weeks.map((w, i) =>
+    `<th><span class="direct-week-sup">${i + 1} неделя</span><br>${w.label}</th>`
+  ).join('');
   const rows = DIRECT_METRICS.map(metric => {
     const cells = weeks.map(w => {
       const val = parseFloat(w[metric.key]) || 0;
@@ -2002,7 +2016,7 @@ function renderDirectWeeklyTable() {
     return `<tr><td class="direct-metric-label">${metric.label}</td>${cells}</tr>`;
   }).join('');
 
-  table.innerHTML = `<thead><tr><th></th>${weekNums}</tr><tr><th></th>${headerCells}</tr></thead><tbody>${rows}</tbody>`;
+  table.innerHTML = `<thead><tr><th></th>${weekHeaders}</tr></thead><tbody>${rows}</tbody>`;
 }
 
 function toggleDirectMetric(key, checkbox) {
