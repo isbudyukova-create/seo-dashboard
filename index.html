@@ -539,6 +539,7 @@ tr.row-own td { background: rgba(61,61,200,0.06) !important; }
         </thead>
         <tbody id="org-competitors-body"></tbody>
       </table>
+      <button class="show-more-btn" id="show-more-org-btn" onclick="toggleOrgShowAll()" style="display:none"></button>
     </div>
   </div>
 
@@ -740,6 +741,7 @@ let activeMonth = null;
 let posFilter = 0;
 let showAll = false;
 let adsShowAll = false;
+let orgShowAll = false;
 let visitsPeriod = 12;
 let posChart = null, trafficChart = null;
 const ROWS_DEFAULT = 15;
@@ -947,8 +949,10 @@ function renderOrgCompetitors() {
     el.textContent = (c === col && dir === 'asc') ? '▲' : '▼';
   });
 
+  const ORG_ROWS_DEFAULT = 10;
   countEl.textContent = allRows.length + ' сайтов';
-  tbody.innerHTML = allRows.map((r, i) => {
+  const display = orgShowAll ? allRows : allRows.slice(0, ORG_ROWS_DEFAULT);
+  tbody.innerHTML = display.map((r, i) => {
     const isOwn = r.domain === brandDomain;
     const traffic = parseInt(r.traffic) || 0;
     return `<tr class="${isOwn ? 'row-own' : ''}">
@@ -962,6 +966,22 @@ function renderOrgCompetitors() {
       <td>${parseInt(r.pages)||0}</td>
     </tr>`;
   }).join('');
+
+  const btn = document.getElementById('show-more-org-btn');
+  const hiddenCount = allRows.length - ORG_ROWS_DEFAULT;
+  if (hiddenCount > 0) {
+    btn.style.display = 'block';
+    btn.textContent = orgShowAll
+      ? `Скрыть (показать первые ${ORG_ROWS_DEFAULT})`
+      : `Показать ещё ${hiddenCount} ${hiddenCount === 1 ? 'строку' : hiddenCount < 5 ? 'строки' : 'строк'}`;
+  } else {
+    btn.style.display = 'none';
+  }
+}
+
+function toggleOrgShowAll() {
+  orgShowAll = !orgShowAll;
+  renderOrgCompetitors();
 }
 
 function domainName(domain) {
@@ -1399,7 +1419,7 @@ function renderMetrikaTraffic() {
     },
     layout: { padding: { top: 20 } },
     scales: {
-      x: { grid: { display: false }, ticks: { color: labelColor, font: { size: 12, family: 'Golos Text' } } },
+      x: { grid: { display: false }, ticks: { color: labelColor, font: { size: 11, family: 'Golos Text' } } },
       y: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11, family: 'Golos Text' } }, beginAtZero: true, grace: '15%' }
     }
   });
