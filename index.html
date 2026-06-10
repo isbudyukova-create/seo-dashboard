@@ -131,6 +131,19 @@ body {
   color: #fff;
 }
 
+/* Section block header */
+.block-header {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+  margin: 40px 0 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--border);
+}
+
 /* Section */
 .section { margin-bottom: 32px; }
 .section-label {
@@ -484,6 +497,8 @@ tr.cat-articles  td { background: #f0f8f8 !important; }
     <div class="month-tabs" id="month-tabs"></div>
   </div>
 
+  <div class="block-header">keys.so</div>
+
   <div class="section">
     <div class="section-label">Позиции в поиске</div>
     <div class="metrics-grid" id="pos-metrics">
@@ -555,6 +570,8 @@ tr.cat-articles  td { background: #f0f8f8 !important; }
       <button class="show-more-btn" id="show-more-ads-btn" onclick="toggleAdsShowAll()" style="display:none"></button>
     </div>
   </div>
+
+  <div class="block-header">Яндекс Метрика</div>
 
   <!-- МЕТРИКА: Посещаемость -->
   <div class="section" id="section-metrika-traffic">
