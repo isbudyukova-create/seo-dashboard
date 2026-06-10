@@ -714,6 +714,19 @@ tr.row-own td { background: rgba(61,61,200,0.06) !important; }
 Chart.register(ChartDataLabels);
 Chart.defaults.plugins.datalabels = { display: false };
 
+function datalabelsConfig(count) {
+  if (count > 3) return { display: false };
+  return {
+    display: true,
+    anchor: 'end',
+    align: 'end',
+    offset: -2,
+    color: '#7b7b9d',
+    font: { size: 11, family: 'Golos Text' },
+    formatter: v => (v !== null && v !== undefined && v !== '') ? Number(v).toLocaleString('ru-RU') : ''
+  };
+}
+
 const BRANDS = [
   { name: 'Садко', title: 'dental.sadkomed.ru', sheetId: '18_wK4ym4OvY5YuCtTI7ZmEZhbrxXdGcflIL8sIQxxMo', domain: 'https://dental.sadkomed.ru' },
   { name: 'Здоровенок', title: 'zdorovenok.ru', sheetId: '1CsSX3R0eA0mHTM8R3VDTyjenU_buDnQwlgZ6xPVkCK0', domain: 'https://zdorovenok.sadkomed.ru' },
@@ -1003,9 +1016,8 @@ function renderMetrics(months) {
 }
 
 function renderCharts(months) {
-  const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
-  const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
-  const labelColor = '#7a776f';
+  const gridColor = '#e2e2f0';
+  const labelColor = '#7b7b9d';
 
   const labels = months.map(m => formatMonth(m));
   const top1 = months.map(m => { const r = brandRow(m); return r ? (parseInt(r.top1)||0) : null; });
@@ -1039,27 +1051,19 @@ function renderCharts(months) {
     type: 'bar',
     data: {
       labels,
-      datasets: [{ label: 'Трафик', data: traffic, backgroundColor: '#c4c4ee', borderColor: '#3d3dc8', borderWidth: 1 }]
+      datasets: [{ label: 'Трафик', data: traffic, backgroundColor: '#c4c4ee', borderRadius: 3 }]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
-        datalabels: {
-          display: true,
-          anchor: 'end',
-          align: 'end',
-          offset: -2,
-          color: labelColor,
-          font: { size: 11, family: 'Golos Text' },
-          formatter: v => v ? v.toLocaleString('ru-RU') : ''
-        }
+        datalabels: datalabelsConfig(traffic.length)
       },
       scales: {
         x: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11, family: 'Golos Text' }, maxRotation: 0 } },
         y: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11, family: 'Golos Text' } } }
       },
-      layout: { padding: { top: 20 } }
+      layout: { padding: { top: traffic.length <= 3 ? 20 : 0 } }
     }
   });
 }
@@ -1351,7 +1355,7 @@ function renderMetrikaTraffic() {
   const visits = lineMonths.map(d => { const r = mRowsForMonth(rows, d)[0]; return r ? parseFloat(r.visits) : null; });
   const pageviews = lineMonths.map(d => { const r = mRowsForMonth(rows, d)[0]; return r ? parseFloat(r.pageviews) : null; });
   const gridColor = '#e2e2f0', labelColor = '#7b7b9d';
-  const chartOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11 } } }, y: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11 } } } } };
+  const chartOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: datalabelsConfig(labels.length) }, scales: { x: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11, family: 'Golos Text' } } }, y: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11, family: 'Golos Text' } } } }, layout: { padding: { top: labels.length <= 3 ? 20 : 0 } } };
 
   if (mVisitsLineChart) mVisitsLineChart.destroy();
   mVisitsLineChart = new Chart(document.getElementById('mVisitsLineChart'), {
@@ -1389,9 +1393,11 @@ function renderMetrikaTraffic() {
   const barOpts = (tooltipLabels) => ({
     responsive: true, maintainAspectRatio: false,
     plugins: {
-      legend: { display: true, labels: { color: labelColor, font: { size: 11, family: 'Golos Text' }, boxWidth: 14, padding: 12 } },
-      tooltip: { callbacks: { title: (items) => tooltipLabels[items[0].dataIndex] || '' } }
+      legend: { display: false },
+      tooltip: { callbacks: { title: (items) => tooltipLabels[items[0].dataIndex] || '' } },
+      datalabels: datalabelsConfig(2)
     },
+    layout: { padding: { top: 20 } },
     scales: {
       x: { grid: { display: false }, ticks: { color: labelColor, font: { size: 12, family: 'Golos Text' } } },
       y: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11, family: 'Golos Text' } }, beginAtZero: true, grace: '15%' }
@@ -1409,7 +1415,7 @@ function renderMetrikaTraffic() {
     type: 'bar',
     data: {
       labels: momLabels,
-      datasets: [{ label: 'Визиты', data: momData, backgroundColor: ['rgba(61,61,200,0.35)', '#3d3dc8'], borderRadius: 4 }]
+      datasets: [{ label: 'Визиты', data: momData, backgroundColor: ['rgba(196,196,238,0.55)', '#c4c4ee'], borderRadius: 3 }]
     },
     options: barOpts(momTooltips)
   });
@@ -1427,7 +1433,7 @@ function renderMetrikaTraffic() {
     type: 'bar',
     data: {
       labels: yoyLabels2,
-      datasets: [{ label: 'Визиты', data: yoyData, backgroundColor: ['rgba(61,61,200,0.35)', '#3d3dc8'], borderRadius: 4 }]
+      datasets: [{ label: 'Визиты', data: yoyData, backgroundColor: ['rgba(196,196,238,0.55)', '#c4c4ee'], borderRadius: 3 }]
     },
     options: barOpts(yoyLabels2)
   });
@@ -1435,14 +1441,14 @@ function renderMetrikaTraffic() {
   if (mVisitsChart) mVisitsChart.destroy();
   mVisitsChart = new Chart(document.getElementById('mVisitsChart'), {
     type: 'bar',
-    data: { labels, datasets: [{ data: visits, backgroundColor: '#c4c4ee', borderColor: '#3d3dc8', borderWidth: 1 }] },
+    data: { labels, datasets: [{ data: visits, backgroundColor: '#c4c4ee', borderRadius: 3 }] },
     options: chartOpts
   });
 
   if (mPageviewsChart) mPageviewsChart.destroy();
   mPageviewsChart = new Chart(document.getElementById('mPageviewsChart'), {
     type: 'bar',
-    data: { labels, datasets: [{ data: pageviews, backgroundColor: '#c4c4ee', borderColor: '#3d3dc8', borderWidth: 1 }] },
+    data: { labels, datasets: [{ data: pageviews, backgroundColor: '#c4c4ee', borderRadius: 3 }] },
     options: chartOpts
   });
 }
