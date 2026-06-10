@@ -281,7 +281,8 @@ body {
 .query-up { background: var(--green-bg); color: var(--green); }
 .query-down { background: var(--red-bg); color: var(--red); }
 .query-new { background: var(--blue-bg); color: var(--accent); }
-.visits-period-btn {
+.visits-period-btn,
+.direct-period-btn {
   padding: 3px 10px;
   border: 1px solid var(--border);
   border-radius: 20px;
@@ -292,8 +293,71 @@ body {
   cursor: pointer;
   transition: all .15s;
 }
-.visits-period-btn:hover { border-color: var(--text); color: var(--text); }
-.visits-period-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
+.visits-period-btn:hover,
+.direct-period-btn:hover { border-color: var(--text); color: var(--text); }
+.visits-period-btn.active,
+.direct-period-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
+.direct-campaign-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.direct-campaign-tab {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all .15s;
+  font-family: 'Golos Text', sans-serif;
+  white-space: nowrap;
+}
+.direct-campaign-tab:hover { border-color: var(--text); color: var(--text); }
+.direct-campaign-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
+.direct-pivot-table { width: 100%; border-collapse: collapse; }
+.direct-pivot-table th {
+  padding: 10px 20px;
+  text-align: right;
+  font-weight: 500;
+  color: var(--muted);
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.direct-pivot-table th:first-child { text-align: left; min-width: 180px; }
+.direct-pivot-table td {
+  padding: 10px 20px;
+  font-size: 13px;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  color: var(--text);
+}
+.direct-pivot-table td.direct-metric-label { text-align: left; }
+.direct-pivot-table tbody tr:last-child td { border-bottom: none; }
+.direct-pivot-table tbody tr:hover td { background: var(--surface2); }
+.direct-cb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 15px; height: 15px;
+  border: 1.5px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+  flex-shrink: 0;
+  position: relative;
+  transition: background .15s, border-color .15s;
+}
+.direct-cb:checked::after {
+  content: '';
+  position: absolute;
+  left: 3px; top: 0px;
+  width: 5px; height: 9px;
+  border: 2px solid #fff;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
 .show-more-btn {
   width: 100%;
   padding: 12px;
@@ -389,7 +453,7 @@ tr.cat-articles  td { background: #f0f8f8 !important; }
 
 
 /* Sortable table headers */
-.sortable-th { cursor: pointer; user-select: none; }
+.sortable-th { cursor: pointer; user-select: none; transition: color 0.15s; }
 .sortable-th:hover { color: var(--accent); }
 .sort-arrow { font-size: 9px; margin-left: 3px; opacity: 0.3; }
 .sort-arrow.active { opacity: 1; color: var(--accent); }
@@ -465,6 +529,33 @@ tr.row-own td { background: rgba(61,61,200,0.06) !important; }
 }
 .brand-btn:hover { color: var(--text); }
 .brand-btn.active { background: var(--surface); color: var(--accent); font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+/* Loading dot — done state */
+.loading-dot.done { background: var(--green); animation: none; opacity: 1; }
+
+/* Metric card footer (delta row) */
+.metric-card-footer { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+/* «vs год назад» hint in metric card */
+.metric-yoy-hint { font-size: 11px; color: var(--muted); margin-left: 4px; }
+
+/* Share % column in traffic sources */
+.share-pct { color: var(--muted); font-size: 12px; }
+
+/* Ad system icon */
+.adv-icon { width: 16px; height: 16px; object-fit: contain; margin-right: 6px; vertical-align: middle; flex-shrink: 0; }
+
+/* Ad system cell (icon + name) */
+.adv-system-cell { display: flex; align-items: center; }
+
+/* Category count badge inside page-cat-btn */
+.cat-count { margin-left: 4px; font-size: 11px; opacity: 0.65; font-weight: 400; }
+
+/* Row number cell in ranked tables */
+.row-num { color: var(--muted); font-size: 12px; text-align: center; }
+
+/* Week header row in direct weekly table */
+.direct-week-sup { color: var(--muted); font-size: 10px; padding-bottom: 2px; border-bottom: none; }
 </style>
 </head>
 <body>
@@ -612,14 +703,14 @@ tr.row-own td { background: rgba(61,61,200,0.06) !important; }
       </div>
       <div class="chart-wrap" style="height:280px"><canvas id="mVisitsLineChart"></canvas></div>
     </div>
-    <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="charts-grid" style="margin-top:16px">
       <div class="chart-card">
         <div class="chart-card-title">Месяц к месяцу</div>
-        <div class="chart-wrap" style="height:280px"><canvas id="mMoMChart"></canvas></div>
+        <div class="chart-wrap"><canvas id="mMoMChart"></canvas></div>
       </div>
       <div class="chart-card">
         <div class="chart-card-title">Год к году</div>
-        <div class="chart-wrap" style="height:280px"><canvas id="mYoYChart"></canvas></div>
+        <div class="chart-wrap"><canvas id="mYoYChart"></canvas></div>
       </div>
     </div>
     <div class="charts-grid" style="margin-top:16px">
@@ -709,6 +800,52 @@ tr.row-own td { background: rgba(61,61,200,0.06) !important; }
     </div>
   </div>
 
+  <!-- ЯНДЕКС ДИРЕКТ -->
+  <div class="block-header" id="direct-block-header" style="display:none">Яндекс Директ</div>
+  <div class="section" id="section-direct" style="display:none">
+
+    <!-- Шапка: кампании + период -->
+    <div class="queries-card">
+      <div class="queries-header">
+        <div class="direct-campaign-tabs" id="direct-campaign-tabs"></div>
+      </div>
+      <div class="queries-header" style="padding-top:8px;padding-bottom:8px;border-bottom:none">
+        <div style="display:flex;gap:4px">
+          <button class="direct-period-btn" onclick="setDirectPeriod(3,this)">3 мес</button>
+          <button class="direct-period-btn active" onclick="setDirectPeriod(6,this)">6 мес</button>
+          <button class="direct-period-btn" onclick="setDirectPeriod(12,this)">12 мес</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- График динамики (нормализованный) -->
+    <div class="chart-card" style="margin-top:16px">
+      <div class="chart-card-title">Динамика по месяцам (нормализованная, 0–100%)</div>
+      <div class="chart-wrap" style="height:280px"><canvas id="directLineChart"></canvas></div>
+    </div>
+
+    <!-- Таблица: динамика по месяцам -->
+    <div class="queries-card" style="margin-top:16px">
+      <div class="queries-header">
+        <span class="queries-title">Показатели по месяцам</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="direct-pivot-table" id="direct-monthly-table"></table>
+      </div>
+    </div>
+
+    <!-- Таблица: по неделям активного месяца -->
+    <div class="queries-card" style="margin-top:16px">
+      <div class="queries-header">
+        <span class="queries-title">По неделям — <span id="direct-weekly-month-label"></span></span>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="direct-pivot-table" id="direct-weekly-table"></table>
+      </div>
+    </div>
+
+  </div>
+
 </div>
 
 <script>
@@ -733,10 +870,11 @@ const BRANDS = [
   { name: 'Здоровенок', title: 'zdorovenok.ru', sheetId: '1CsSX3R0eA0mHTM8R3VDTyjenU_buDnQwlgZ6xPVkCK0', domain: 'https://zdorovenok.sadkomed.ru' },
   { name: 'Дино', title: 'Дино', sheetId: '1rWn4O1OG4iQQVZakrHlfEhp0bkC0aqFXu0MjcFTfkQk', domain: '' },
 ];
+const DIRECT_SHEET_ID = '1pKM-243Fol0oPcbcyD6fTQiUBEuXQVKzWGrjMMjOMVE';
 let activeBrand = 0;
 const SHEETS = { positions: 'positions', queries: 'queries', ads: 'ads' };
 
-let allData = { positions: [], queries: [], ads: [], metrika_traffic: [], metrika_sources: [], metrika_adv: [], metrika_pages: [], pages_map: [], domains_map: [] };
+let allData = { positions: [], queries: [], ads: [], metrika_traffic: [], metrika_sources: [], metrika_adv: [], metrika_pages: [], pages_map: [], domains_map: [], direct_weekly: [] };
 let activeMonth = null;
 let posFilter = 0;
 let showAll = false;
@@ -744,6 +882,19 @@ let adsShowAll = false;
 let orgShowAll = false;
 let visitsPeriod = 12;
 let posChart = null, trafficChart = null;
+let directLineChart = null;
+let directPeriod = 6;
+let directCampaign = null;
+let directChecked = new Set(['clicks', 'cost']);
+const DIRECT_METRICS = [
+  { key: 'impressions', label: 'Показы',      color: '#4E8AF4', fmt: n => Math.round(n).toLocaleString('ru-RU') },
+  { key: 'clicks',      label: 'Клики',       color: '#FF3080', fmt: n => Math.round(n).toLocaleString('ru-RU') },
+  { key: 'cost',        label: 'Расходы, ₽',  color: '#6CBE6C', fmt: n => Math.round(n).toLocaleString('ru-RU') },
+  { key: 'ctr',         label: 'CTR',         color: '#FFA040', fmt: n => n.toFixed(1) + '%' },
+  { key: 'cpc',         label: 'CPC, ₽',      color: '#9B85C4', fmt: n => Math.round(n).toLocaleString('ru-RU') },
+  { key: 'conversions', label: 'Конверсии',   color: '#FF6B6B', fmt: n => Math.round(n).toLocaleString('ru-RU') },
+  { key: 'cpa',         label: 'CPA, ₽',      color: '#4DD0C4', fmt: n => Math.round(n).toLocaleString('ru-RU') },
+];
 const ROWS_DEFAULT = 15;
 
 function sheetUrl(name) {
@@ -761,6 +912,7 @@ async function switchBrand(idx, btn) {
   posFilter = 0;
   showAll = false;
   adsShowAll = false;
+  directCampaign = null;
   document.querySelectorAll('.pos-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
   await init();
   // восстанавливаем месяц если такой есть у нового бренда
@@ -773,6 +925,15 @@ async function switchBrand(idx, btn) {
 
 async function fetchSheet(name) {
   const r = await fetch(sheetUrl(name));
+  if (!r.ok) throw new Error(`HTTP ${r.status} — лист "${name}"`);
+  const text = await r.text();
+  return parseCSV(text);
+}
+
+async function fetchDirectSheet() {
+  const tab = BRANDS[activeBrand].name;
+  const url = `https://docs.google.com/spreadsheets/d/${DIRECT_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
+  const r = await fetch(url);
   const text = await r.text();
   return parseCSV(text);
 }
@@ -886,14 +1047,17 @@ function selectMonth(label) {
   activeMonth = months.find(m => formatMonth(m) === label) || activeMonth;
   showAll = false;
   adsShowAll = false;
+  orgShowAll = false;
+  activeCats.clear();
   renderAll();
 }
 
 function getAllMonths() {
   const posMonths = getMonths(allData.positions);
   const metMonths = getMonths(allData.metrika_traffic);
+  const directMonths = getMonths(allData.direct_weekly);
   const map = new Map();
-  [...posMonths, ...metMonths].forEach(d => map.set(formatMonth(d), d));
+  [...posMonths, ...metMonths, ...directMonths].forEach(d => map.set(formatMonth(d), d));
   return [...map.values()].sort((a, b) => a - b);
 }
 
@@ -910,6 +1074,7 @@ function renderAll() {
   renderMetrikaSources();
   renderMetrikaAdv();
   renderMetrikaPages();
+  renderDirectStats();
 }
 
 let orgSort = { col: 'top10', dir: 'desc' };
@@ -1220,7 +1385,7 @@ function renderAds() {
     })() : '';
 
     return `<tr class="${!budget ? 'ads-row-empty' : ''}">
-      <td>${domainName(domain) || '—'}</td>
+      <td>${domain ? `<a href="https://${domain}" target="_blank" class="page-title-link">${domainName(domain)}</a>` : '—'}</td>
       <td>${adsVal || '—'}${prevAds !== null ? adsDelta(adsVal, prevAds) : ''}</td>
       <td>${r.queries || '—'}</td>
       <td>${trafficVal || '—'}${prevTraffic !== null ? adsDelta(trafficVal, prevTraffic) : ''}</td>
@@ -1258,7 +1423,7 @@ function setStatus(text, loading) {
   const badge = document.getElementById('status-badge');
   badge.innerHTML = loading
     ? `<span class="loading-dot"></span>${text}`
-    : `<span style="width:6px;height:6px;border-radius:50%;background:#2d6a4f;display:inline-block"></span>${text}`;
+    : `<span class="loading-dot done"></span>${text}`;
 }
 
 // ── Категории страниц ─────────────────────────────────────────
@@ -1322,6 +1487,10 @@ function metrikaDelta(cur, prev, suffix = '') {
   return `<span class="query-change ${cls}">${arrow}${Math.abs(d).toLocaleString('ru-RU')}${suffix}</span>`;
 }
 
+function getUniqueMonths(rows) {
+  return [...new Map(rows.map(r => [formatMonth(new Date(r.date)), new Date(r.date)])).values()].sort((a, b) => a - b);
+}
+
 function formatDuration(sec) {
   const m = Math.floor(sec / 60);
   const s = Math.round(sec % 60);
@@ -1338,7 +1507,7 @@ function renderMetrikaTraffic() {
   section.style.display = '';
 
   const cur = mRowsForMonth(rows, activeMonth)[0];
-  const mMonths = [...new Map(rows.map(r => [r.date, new Date(r.date)])).values()].sort((a,b)=>a-b);
+  const mMonths = getUniqueMonths(rows);
   const prevM = prevMonth(mMonths, activeMonth);
   const prev = prevM ? mRowsForMonth(rows, prevM)[0] : null;
   const prevYear = mPrevYearMonth(activeMonth);
@@ -1359,11 +1528,11 @@ function renderMetrikaTraffic() {
     const pyVal = prevYearRow ? (parseFloat(prevYearRow[m.key]) || 0) : null;
     const display = m.format ? m.format(val) : (m.round ? val.toFixed(1) : val.toLocaleString('ru-RU')) + m.suffix;
     const d1 = prevVal !== null ? metrikaDelta(val, prevVal, m.suffix) : '';
-    const d2 = pyVal !== null ? `<span style="font-size:11px;color:var(--muted);margin-left:4px">vs год назад ${metrikaDelta(val, pyVal, m.suffix)}</span>` : '';
+    const d2 = pyVal !== null ? `<span class="metric-yoy-hint">vs год назад ${metrikaDelta(val, pyVal, m.suffix)}</span>` : '';
     return `<div class="metric-card">
       <div class="metric-card-label">${m.label}</div>
       <div class="metric-card-value">${display}</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">${d1}${d2}</div>
+      <div class="metric-card-footer">${d1}${d2}</div>
     </div>`;
   }).join('');
 
@@ -1425,10 +1594,9 @@ function renderMetrikaTraffic() {
   });
 
   // График 1: текущий месяц vs предыдущий
-  const prevM2 = prevMonth(mMonths, activeMonth);
-  const momLabels = [prevM2 ? formatMonth(prevM2).split(' ')[0] : '—', activeMonth ? formatMonth(activeMonth).split(' ')[0] : '—'];
-  const momTooltips = [prevM2 ? formatMonth(prevM2) : '', activeMonth ? formatMonth(activeMonth) : ''];
-  const momData = [getVal(prevM2), getVal(activeMonth)];
+  const momLabels = [prevM ? formatMonth(prevM).split(' ')[0] : '—', activeMonth ? formatMonth(activeMonth).split(' ')[0] : '—'];
+  const momTooltips = [prevM ? formatMonth(prevM) : '', activeMonth ? formatMonth(activeMonth) : ''];
+  const momData = [getVal(prevM), getVal(activeMonth)];
 
   if (mMoMChart) mMoMChart.destroy();
   mMoMChart = new Chart(document.getElementById('mMoMChart'), {
@@ -1497,7 +1665,7 @@ function renderMetrikaSources() {
           <div class="freq-bar-bg"><div class="freq-bar" style="width:${bar}%"></div></div>
         </div>
       </td>
-      <td style="color:var(--muted);font-size:12px">${pct}%</td>
+      <td class="share-pct">${pct}%</td>
     </tr>`;
   }).join('');
 }
@@ -1510,7 +1678,7 @@ function renderMetrikaAdv() {
   if (!rows.length) { section.style.display = 'none'; return; }
   section.style.display = '';
 
-  const mMonths = [...new Map(allData.metrika_adv.map(r => [r.date, new Date(r.date)])).values()].sort((a,b)=>a-b);
+  const mMonths = getUniqueMonths(allData.metrika_adv);
   const prevM = prevMonth(mMonths, activeMonth);
   const prevRows = prevM ? mRowsForMonth(allData.metrika_adv, prevM) : [];
 
@@ -1526,7 +1694,7 @@ function renderMetrikaAdv() {
     if (!name) return '';
     const lower = name.toLowerCase();
     for (const [key, src] of Object.entries(ADV_ICONS)) {
-      if (lower.includes(key)) return `<img src="${src}" style="width:16px;height:16px;object-fit:contain;margin-right:6px;vertical-align:middle;flex-shrink:0">`;
+      if (lower.includes(key)) return `<img src="${src}" class="adv-icon" alt="">`;
     }
     return '';
   }
@@ -1536,11 +1704,11 @@ function renderMetrikaAdv() {
     const v = parseFloat(r.visits) || 0;
     const prevV = prev ? (parseFloat(prev.visits) || 0) : null;
     return `<tr>
-      <td><div style="display:flex;align-items:center">${getAdvIcon(r.advSystem)}${r.advSystem || '—'}</div></td>
+      <td><div class="adv-system-cell">${getAdvIcon(r.advSystem)}${r.advSystem || '—'}</div></td>
       <td>${v.toLocaleString('ru-RU')}${prevV !== null ? metrikaDelta(v, prevV) : ''}</td>
-      <td>${parseFloat(r.users).toLocaleString('ru-RU') || '—'}</td>
-      <td>${parseFloat(r.bounceRate).toFixed(1) || '—'}%</td>
-      <td>${formatDuration(parseFloat(r.avgDuration) || 0)}</td>
+      <td>${isNaN(parseFloat(r.users)) ? '—' : parseFloat(r.users).toLocaleString('ru-RU')}</td>
+      <td>${isNaN(parseFloat(r.bounceRate)) ? '—' : parseFloat(r.bounceRate).toFixed(1) + '%'}</td>
+      <td>${parseFloat(r.avgDuration) > 0 ? formatDuration(parseFloat(r.avgDuration)) : '—'}</td>
     </tr>`;
   }).join('');
 }
@@ -1553,7 +1721,7 @@ function renderMetrikaPages() {
   if (!rows.length) { section.style.display = 'none'; return; }
   section.style.display = '';
 
-  const mMonths = [...new Map(allData.metrika_pages.map(r => [r.date, new Date(r.date)])).values()].sort((a,b)=>a-b);
+  const mMonths = getUniqueMonths(allData.metrika_pages);
   const prevM = prevMonth(mMonths, activeMonth);
   const prevRows = prevM ? mRowsForMonth(allData.metrika_pages, prevM) : [];
 
@@ -1579,10 +1747,11 @@ function renderMetrikaPages() {
     btn.appendChild(document.createTextNode(catLabels[cat]));
     if (count > 0) {
       const badge = document.createElement('span');
-      badge.style.cssText = 'margin-left:4px;font-size:11px;opacity:0.65;font-weight:400';
+      badge.className = 'cat-count';
       badge.textContent = count;
       btn.appendChild(badge);
     }
+    btn.classList.toggle('active', activeCats.has(cat));
   });
 
   // Строим рейтинг предыдущего месяца: path → rank (1-based)
@@ -1607,35 +1776,272 @@ function renderMetrikaPages() {
     }
 
     return `<tr data-path="${path}">
-      <td style="color:var(--muted);font-size:12px;text-align:center">${curRank}</td>
+      <td class="row-num">${curRank}</td>
       <td>
         <a href="${url}" target="_blank" class="page-title-link">${title}</a>
         ${changeBadge}
       </td>
       <td>${v.toLocaleString('ru-RU')}</td>
-      <td>${parseFloat(r.bounceRate).toFixed(1) || '—'}%</td>
-      <td>${formatDuration(parseFloat(r.avgDuration) || 0)}</td>
+      <td>${isNaN(parseFloat(r.bounceRate)) ? '—' : parseFloat(r.bounceRate).toFixed(1) + '%'}</td>
+      <td>${parseFloat(r.avgDuration) > 0 ? formatDuration(parseFloat(r.avgDuration)) : '—'}</td>
     </tr>`;
   }).join('');
 
   applyPageCatHighlight();
 }
 
+// ── ЯНДЕКС ДИРЕКТ ────────────────────────────────────────────
+
+function normalizeDirectRows(rows) {
+  function num(v) { const s = String(v || '0').replace(',', '.'); return (s === '--' || s === '') ? '0' : s; }
+  return rows.map(r => {
+    const campaign = r['Название кампании'] || r.campaign || '';
+    if (!campaign) return null;
+    let dateStr = r['Неделя'] || r.date || '';
+    if (dateStr.includes(' - ')) dateStr = dateStr.split(' - ')[0].trim();
+    const bouncesRaw = r['Отказы, %'] !== undefined ? r['Отказы, %'] : null;
+    const bounces = bouncesRaw !== null
+      ? String(parseFloat(num(bouncesRaw)) / 100)
+      : num(r.bounces);
+    return {
+      date:        dateStr,
+      campaign,
+      sov:         num(r.sov || 0),
+      impressions: num(r['Показы']     || r.impressions),
+      clicks:      num(r['Клики']      || r.clicks),
+      cost:        num(r['Расход, ₽']  || r.cost),
+      ctr:         num(r['CTR, %']     || r.ctr),
+      cpc:         num(r['CPC, ₽']     || r.cpc),
+      bounces,
+      conversions: num(r['Конверсии']  || r.conversions),
+      conv_rate:   num(r['CR, %']      || r.conv_rate || 0),
+      cpa:         num(r['CPA, ₽']     || r.cpa),
+    };
+  }).filter(Boolean);
+}
+
+function getDirectCampaigns() {
+  return [...new Set(allData.direct_weekly.map(r => r.campaign).filter(Boolean))].sort();
+}
+
+function aggregateDirectByMonth(campaign, months) {
+  return months.map(month => {
+    const rows = allData.direct_weekly.filter(r =>
+      r.campaign === campaign && formatMonth(parseDate(r.date)) === formatMonth(month)
+    );
+    if (!rows.length) return null;
+    const impressions = rows.reduce((s, r) => s + (parseFloat(r.impressions) || 0), 0);
+    const clicks      = rows.reduce((s, r) => s + (parseFloat(r.clicks) || 0), 0);
+    const cost        = rows.reduce((s, r) => s + (parseFloat(r.cost) || 0), 0);
+    const conversions = rows.reduce((s, r) => s + (parseFloat(r.conversions) || 0), 0);
+    const ctr         = impressions > 0 ? clicks / impressions * 100 : 0;
+    const cpc         = clicks > 0 ? cost / clicks : 0;
+    const cpa         = conversions > 0 ? cost / conversions : 0;
+    return { impressions, clicks, cost, ctr, cpc, conversions, cpa };
+  });
+}
+
+function getDirectWeeklyData(campaign, month) {
+  const rows = allData.direct_weekly
+    .filter(r => r.campaign === campaign && formatMonth(parseDate(r.date)) === formatMonth(month))
+    .sort((a, b) => parseDate(a.date) - parseDate(b.date));
+  const monthNames = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+  return rows.map(r => {
+    const start = parseDate(r.date);
+    const lastDay = new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate();
+    const endDay = Math.min(start.getDate() + 6, lastDay);
+    const label = `${start.getDate()}–${endDay} ${monthNames[start.getMonth()]}`;
+    return { label, ...r };
+  });
+}
+
+function renderDirectStats() {
+  const section = document.getElementById('section-direct');
+  const header  = document.getElementById('direct-block-header');
+  if (!allData.direct_weekly.length) {
+    section.style.display = 'none';
+    header.style.display  = 'none';
+    return;
+  }
+  section.style.display = '';
+  header.style.display  = '';
+
+  const campaigns = getDirectCampaigns();
+  if (!directCampaign || !campaigns.includes(directCampaign)) directCampaign = campaigns[0];
+
+  // Табы кампаний
+  document.getElementById('direct-campaign-tabs').innerHTML = campaigns.map(c =>
+    `<button class="direct-campaign-tab${c === directCampaign ? ' active' : ''}" onclick="selectDirectCampaign(${JSON.stringify(c).replace(/"/g,'&quot;')},this)">${c}</button>`
+  ).join('');
+
+  // Месяцы из direct_weekly, упорядоченные как в дашборде
+  const allM = getAllMonths();
+  const directMonths = allM.filter(m =>
+    allData.direct_weekly.some(r => formatMonth(parseDate(r.date)) === formatMonth(m))
+  );
+  const activeIdx = directMonths.findIndex(m => formatMonth(m) === formatMonth(activeMonth));
+  const endIdx    = activeIdx >= 0 ? activeIdx : directMonths.length - 1;
+  const startIdx  = Math.max(0, endIdx - directPeriod + 1);
+  const periodMonths = directMonths.slice(startIdx, endIdx + 1);
+
+  const monthlyData = aggregateDirectByMonth(directCampaign, periodMonths);
+
+  renderDirectLineChart(periodMonths, monthlyData);
+  renderDirectMonthlyTable(periodMonths, monthlyData);
+  renderDirectWeeklyTable();
+}
+
+function renderDirectLineChart(months, monthlyData) {
+  const ctx = document.getElementById('directLineChart').getContext('2d');
+  if (directLineChart) directLineChart.destroy();
+
+  const labels   = months.map(m => formatMonth(m));
+  const checked  = DIRECT_METRICS.filter(m => directChecked.has(m.key));
+  const datasets = checked.map(metric => {
+    const raw    = monthlyData.map(d => d ? (d[metric.key] || 0) : null);
+    const maxVal = Math.max(...raw.filter(v => v !== null), 1);
+    return {
+      label: metric.label,
+      actualData: raw,
+      data: raw.map(v => v !== null ? Math.round(v / maxVal * 100) : null),
+      borderColor: metric.color,
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      tension: 0,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      pointHoverBackgroundColor: metric.color,
+      pointHoverBorderColor: '#fff',
+      pointHoverBorderWidth: 2,
+      spanGaps: true,
+    };
+  });
+
+  const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+  const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+  directLineChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: true, labels: { font: { family: 'Golos Text', size: 12 }, boxWidth: 12, padding: 16 } },
+        tooltip: { callbacks: { label: item => {
+          const actual = item.dataset.actualData?.[item.dataIndex];
+          const metric = checked.find(m => m.label === item.dataset.label);
+          const formatted = (actual !== null && actual !== undefined && metric) ? metric.fmt(actual) : item.raw + '%';
+          return `${item.dataset.label}: ${formatted}`;
+        }}}
+      },
+      scales: {
+        x: { grid: { color: gridColor }, ticks: { font: { family: 'Golos Text', size: 11 } } },
+        y: {
+          min: 0,
+          suggestedMax: 100,
+          grid: { color: gridColor },
+          ticks: { font: { family: 'Golos Text', size: 11 }, callback: v => v <= 100 ? v + '%' : null }
+        }
+      }
+    }
+  });
+}
+
+function renderDirectMonthlyTable(months, monthlyData) {
+  const table = document.getElementById('direct-monthly-table');
+  const headerCells = months.map(m => `<th>${formatMonth(m)}</th>`).join('');
+
+  const rows = DIRECT_METRICS.map(metric => {
+    const checked = directChecked.has(metric.key);
+    const cells = monthlyData.map(data => {
+      if (!data) return `<td style="color:var(--muted)">—</td>`;
+      return `<td>${metric.fmt(data[metric.key] || 0)}</td>`;
+    }).join('');
+    return `<tr>
+      <td class="direct-metric-label">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" class="direct-cb" ${checked ? 'checked' : ''}
+            style="${checked ? `background:${metric.color};border-color:${metric.color}` : ''}"
+            data-color="${metric.color}"
+            onchange="this.style.background=this.checked?this.dataset.color:'';this.style.borderColor=this.checked?this.dataset.color:'';toggleDirectMetric('${metric.key}',this)">
+          <span>${metric.label}</span>
+        </label>
+      </td>
+      ${cells}
+    </tr>`;
+  }).join('');
+
+  table.innerHTML = `<thead><tr><th></th>${headerCells}</tr></thead><tbody>${rows}</tbody>`;
+}
+
+function renderDirectWeeklyTable() {
+  const table = document.getElementById('direct-weekly-table');
+  document.getElementById('direct-weekly-month-label').textContent = activeMonth ? formatMonth(activeMonth) : '';
+
+  const weeks = getDirectWeeklyData(directCampaign, activeMonth);
+  if (!weeks.length) {
+    table.innerHTML = '<tbody><tr><td colspan="2" class="error-msg" style="padding:16px">Нет данных за этот месяц</td></tr></tbody>';
+    return;
+  }
+
+  const weekNums = weeks.map((_, i) => `<th class="direct-week-sup">${i + 1} неделя</th>`).join('');
+  const headerCells = weeks.map(w => `<th>${w.label}</th>`).join('');
+  const rows = DIRECT_METRICS.map(metric => {
+    const cells = weeks.map(w => {
+      const val = parseFloat(w[metric.key]) || 0;
+      return `<td>${metric.fmt(val)}</td>`;
+    }).join('');
+    return `<tr><td class="direct-metric-label">${metric.label}</td>${cells}</tr>`;
+  }).join('');
+
+  table.innerHTML = `<thead><tr><th></th>${weekNums}</tr><tr><th></th>${headerCells}</tr></thead><tbody>${rows}</tbody>`;
+}
+
+function toggleDirectMetric(key, checkbox) {
+  if (checkbox.checked) directChecked.add(key);
+  else directChecked.delete(key);
+
+  const allM = getAllMonths();
+  const directMonths = allM.filter(m =>
+    allData.direct_weekly.some(r => formatMonth(parseDate(r.date)) === formatMonth(m))
+  );
+  const activeIdx = directMonths.findIndex(m => formatMonth(m) === formatMonth(activeMonth));
+  const endIdx    = activeIdx >= 0 ? activeIdx : directMonths.length - 1;
+  const periodMonths = directMonths.slice(Math.max(0, endIdx - directPeriod + 1), endIdx + 1);
+  renderDirectLineChart(periodMonths, aggregateDirectByMonth(directCampaign, periodMonths));
+}
+
+function setDirectPeriod(months, btn) {
+  directPeriod = months;
+  document.querySelectorAll('.direct-period-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderDirectStats();
+}
+
+function selectDirectCampaign(campaign, btn) {
+  directCampaign = campaign;
+  document.querySelectorAll('.direct-campaign-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderDirectStats();
+}
+
 async function init() {
   try {
-    const [positions, queries, ads, metrika_traffic, metrika_sources, metrika_adv, metrika_pages, pages_map, domains_map] = await Promise.all([
-      fetchSheet('positions'),
-      fetchSheet('queries'),
-      fetchSheet('ads'),
+    const [positions, queries, ads, metrika_traffic, metrika_sources, metrika_adv, metrika_pages, pages_map, domains_map, direct_weekly] = await Promise.all([
+      fetchSheet('positions').catch(() => []),
+      fetchSheet('queries').catch(() => []),
+      fetchSheet('ads').catch(() => []),
       fetchSheet('metrika_traffic').catch(() => []),
       fetchSheet('metrika_sources').catch(() => []),
       fetchSheet('metrika_adv').catch(() => []),
       fetchSheet('metrika_pages').catch(() => []),
       fetchSheet('pages_map').catch(() => []),
       fetchSheet('domains_map').catch(() => []),
+      fetchDirectSheet().catch(() => []),
     ]);
 
-    allData = { positions, queries, ads, metrika_traffic, metrika_sources, metrika_adv, metrika_pages, pages_map, domains_map };
+    allData = { positions, queries, ads, metrika_traffic, metrika_sources, metrika_adv, metrika_pages, pages_map, domains_map, direct_weekly: normalizeDirectRows(direct_weekly) };
 
     const months = getMonths(allData.positions);
     if (!months.length) {
