@@ -572,6 +572,8 @@ tr.row-own td { background: rgba(61,61,200,0.06) !important; }
           <button class="brand-btn active" onclick="switchBrand(0, this)">Стоматология</button>
           <button class="brand-btn" onclick="switchBrand(1, this)">Здоровенок</button>
           <button class="brand-btn" onclick="switchBrand(2, this)">Дино</button>
+          <button class="brand-btn" onclick="switchBrand(3, this)">Косметология</button>
+          <button class="brand-btn" onclick="switchBrand(4, this)">КДЛ</button>
         </div>
         <div class="loading-badge" id="status-badge">
           <span class="loading-dot"></span>
@@ -585,16 +587,16 @@ tr.row-own td { background: rgba(61,61,200,0.06) !important; }
     <div class="month-tabs" id="month-tabs"></div>
   </div>
 
-  <div class="block-header">keys.so</div>
+  <div class="block-header" id="keys-block-header">keys.so</div>
 
-  <div class="section">
+  <div class="section" id="section-pos-metrics">
     <div class="section-label">Запросы сайта в топе</div>
     <div class="metrics-grid" id="pos-metrics">
       <div class="metric-card"><div class="metric-card-label">Загрузка...</div></div>
     </div>
   </div>
 
-  <div class="section">
+  <div class="section" id="section-pos-charts">
     <div class="charts-grid">
       <div class="chart-card">
         <div class="chart-card-title">Динамика топ-позиций</div>
@@ -634,7 +636,7 @@ tr.row-own td { background: rgba(61,61,200,0.06) !important; }
     </div>
   </div>
 
-  <div class="section">
+  <div class="section" id="section-queries">
     <div class="section-label">Запросы в органической выдаче</div>
     <div class="queries-card">
       <div class="queries-header">
@@ -664,7 +666,7 @@ tr.row-own td { background: rgba(61,61,200,0.06) !important; }
     </div>
   </div>
 
-  <div class="section">
+  <div class="section" id="section-ads">
     <div class="section-label">Конкуренты — контекстная реклама</div>
     <div class="ads-card">
       <div class="queries-header">
@@ -686,7 +688,7 @@ tr.row-own td { background: rgba(61,61,200,0.06) !important; }
     </div>
   </div>
 
-  <div class="block-header">Яндекс Метрика</div>
+  <div class="block-header" id="metrika-block-header">Яндекс Метрика</div>
 
   <!-- МЕТРИКА: Посещаемость -->
   <div class="section" id="section-metrika-traffic">
@@ -868,7 +870,9 @@ function datalabelsConfig(count) {
 const BRANDS = [
   { name: 'Садко', title: 'dental.sadkomed.ru', sheetId: '18_wK4ym4OvY5YuCtTI7ZmEZhbrxXdGcflIL8sIQxxMo', domain: 'https://dental.sadkomed.ru' },
   { name: 'Здоровенок', title: 'zdorovenok.ru', sheetId: '1CsSX3R0eA0mHTM8R3VDTyjenU_buDnQwlgZ6xPVkCK0', domain: 'https://zdorovenok.sadkomed.ru' },
-  { name: 'Дино', title: 'Дино', sheetId: '1rWn4O1OG4iQQVZakrHlfEhp0bkC0aqFXu0MjcFTfkQk', domain: '' },
+  { name: 'Дино', title: 'dino.sadkomed.ru', sheetId: '1rWn4O1OG4iQQVZakrHlfEhp0bkC0aqFXu0MjcFTfkQk', domain: 'https://dino.sadkomed.ru' },
+  { name: 'Косметология', title: 'cosmetology.sadkomed.ru', sheetId: '1oBZmlZyeWIoRfuTCZfenWu1V9wr68ynvpYwz8nK6-I0', domain: 'https://cosmetology.sadkomed.ru' },
+  { name: 'КДЛ', title: 'lab.sadkomed.ru', sheetId: '1_tiSoa0L4IYDpmqFQ5uomsgqMuChsDMv9pxQTowUQV0', domain: 'https://lab.sadkomed.ru' },
 ];
 const DIRECT_SHEET_ID = '1pKM-243Fol0oPcbcyD6fTQiUBEuXQVKzWGrjMMjOMVE';
 let activeBrand = 0;
@@ -1061,6 +1065,14 @@ function getAllMonths() {
   return [...map.values()].sort((a, b) => a - b);
 }
 
+function updateBlockHeaders() {
+  const keysIds = ['section-pos-metrics','section-pos-charts','section-org-competitors','section-queries','section-ads'];
+  const metrikaIds = ['section-metrika-traffic','section-metrika-sources','section-metrika-adv','section-metrika-pages'];
+  const anyVisible = ids => ids.some(id => document.getElementById(id).style.display !== 'none');
+  document.getElementById('keys-block-header').style.display = anyVisible(keysIds) ? '' : 'none';
+  document.getElementById('metrika-block-header').style.display = anyVisible(metrikaIds) ? '' : 'none';
+}
+
 function renderAll() {
   const months = getAllMonths();
   const posMonths = getMonths(allData.positions);
@@ -1075,6 +1087,7 @@ function renderAll() {
   renderMetrikaAdv();
   renderMetrikaPages();
   renderDirectStats();
+  updateBlockHeaders();
 }
 
 let orgSort = { col: 'top10', dir: 'desc' };
@@ -1161,6 +1174,10 @@ function brandRow(month) {
 }
 
 function renderMetrics(months) {
+  const section = document.getElementById('section-pos-metrics');
+  if (!allData.positions.length) { section.style.display = 'none'; return; }
+  section.style.display = '';
+
   const cur = brandRow(activeMonth);
   const prev = prevMonth(months, activeMonth);
   const prevRow = prev ? brandRow(prev) : null;
@@ -1201,6 +1218,10 @@ function renderMetrics(months) {
 }
 
 function renderCharts(months) {
+  const section = document.getElementById('section-pos-charts');
+  if (!months.length) { section.style.display = 'none'; return; }
+  section.style.display = '';
+
   const gridColor = '#e2e2f0';
   const labelColor = '#7b7b9d';
 
@@ -1279,6 +1300,10 @@ function setVisitsPeriod(months, btn) {
 }
 
 function renderQueries() {
+  const section = document.getElementById('section-queries');
+  if (!allData.queries.length) { section.style.display = 'none'; return; }
+  section.style.display = '';
+
   let rows = rowsForMonth(allData.queries, activeMonth);
   if (posFilter > 0) rows = rows.filter(r => parseInt(r.position) === posFilter);
   rows.sort((a, b) => (parseInt(a.position)||9) - (parseInt(b.position)||9) || (parseInt(b.frequency)||0) - (parseInt(a.frequency)||0));
@@ -1350,6 +1375,10 @@ function adsDelta(cur, prev) {
 }
 
 function renderAds() {
+  const section = document.getElementById('section-ads');
+  if (!allData.ads.length) { section.style.display = 'none'; return; }
+  section.style.display = '';
+
   const rows = rowsForMonth(allData.ads, activeMonth);
   rows.sort((a, b) => parseBudget(b.budget) - parseBudget(a.budget));
   const maxBudget = Math.max(...rows.map(r => parseBudget(r.budget)), 1);
@@ -1557,14 +1586,18 @@ function renderMetrikaTraffic() {
         borderColor: '#3d3dc8',
         backgroundColor: 'rgba(61,61,200,0.08)',
         tension: 0,
-        pointRadius: 4,
-        pointBackgroundColor: '#3d3dc8',
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        pointHoverBackgroundColor: '#3d3dc8',
+        pointHoverBorderColor: '#fff',
+        pointHoverBorderWidth: 2,
         borderWidth: 2,
         fill: true,
       }]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
       plugins: { legend: { display: false } },
       scales: {
         x: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11, family: 'Golos Text' } } },
