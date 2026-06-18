@@ -266,6 +266,14 @@ body {
 .freq-num { font-size: 12px; color: var(--muted); min-width: 52px; text-align: right; }
 .freq-bar-bg { flex: 1; height: 4px; background: var(--border); border-radius: 2px; max-width: 80px; }
 .freq-bar { height: 4px; background: var(--accent); border-radius: 2px; }
+.src-cell { display: flex; align-items: center; gap: 6px; }
+.src-toggle-wrap { width: 14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.src-toggle { background: none; border: none; cursor: pointer; padding: 0; color: var(--muted); font-size: 10px; transition: transform 0.2s; line-height: 1; }
+.src-toggle.expanded { transform: rotate(90deg); }
+.src-icon { width: 18px; height: 18px; flex-shrink: 0; display: block; }
+.src-child-row { display: none; }
+.src-child-row.visible { display: table-row; }
+.src-child-row .src-cell { padding-left: 20px; color: var(--muted); font-size: 13px; }
 .query-link { color: var(--muted); font-size: 11px; text-decoration: none; }
 .query-link:hover { color: var(--text); }
 .query-text { margin-right: 6px; }
@@ -417,6 +425,9 @@ body {
 .page-title-link { color: var(--text); text-decoration: none; font-size: 13px; }
 .page-title-link:hover { color: var(--accent); text-decoration: underline; }
 .page-path-small { font-size: 11px; color: var(--muted); margin-top: 2px; }
+/* Фиксируем ширины колонок таблицы страниц, чтобы длинные URL не выталкивали ВИЗИТЫ/ОТКАЗЫ/ВРЕМЯ */
+#section-metrika-pages .queries-table { table-layout: fixed; }
+#section-metrika-pages .queries-table td:nth-child(2) { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 
 /* Категории страниц */
 .page-cat-filter { display: flex; gap: 4px; flex-wrap: wrap; }
@@ -1507,11 +1518,12 @@ function mPrevYearMonth(month) {
   return new Date(month.getFullYear() - 1, month.getMonth(), 1);
 }
 
-function metrikaDelta(cur, prev, suffix = '') {
+function metrikaDelta(cur, prev, suffix = '', invert = false) {
   if (prev === null || prev === undefined) return '';
   const d = cur - prev;
   if (d === 0) return '';
-  const cls = d > 0 ? 'query-up' : 'query-down';
+  const positive = invert ? d < 0 : d > 0;
+  const cls = positive ? 'query-up' : 'query-down';
   const arrow = d > 0 ? '↑' : '↓';
   return ` <span class="query-change ${cls}">${arrow}${Math.abs(d).toLocaleString('ru-RU')}${suffix}</span>`;
 }
@@ -1546,7 +1558,7 @@ function renderMetrikaTraffic() {
     { label: 'Визиты', key: 'visits', suffix: '' },
     { label: 'Просмотры', key: 'pageviews', suffix: '' },
     { label: 'Пользователи', key: 'users', suffix: '' },
-    { label: 'Отказы', key: 'bounceRate', suffix: '%', round: true },
+    { label: 'Отказы', key: 'bounceRate', suffix: '%', round: true, invertDelta: true },
     { label: 'Время на сайте', key: 'avgDuration', format: formatDuration },
   ];
 
@@ -1556,8 +1568,8 @@ function renderMetrikaTraffic() {
     const prevVal = prev ? (parseFloat(prev[m.key]) || 0) : null;
     const pyVal = prevYearRow ? (parseFloat(prevYearRow[m.key]) || 0) : null;
     const display = m.format ? m.format(val) : (m.round ? val.toFixed(1) : val.toLocaleString('ru-RU')) + m.suffix;
-    const d1 = prevVal !== null ? metrikaDelta(val, prevVal, m.suffix) : '';
-    const d2 = pyVal !== null ? `<span class="metric-yoy-hint">vs год назад ${metrikaDelta(val, pyVal, m.suffix)}</span>` : '';
+    const d1 = prevVal !== null ? metrikaDelta(val, prevVal, m.suffix, m.invertDelta) : '';
+    const d2 = pyVal !== null ? `<span class="metric-yoy-hint">vs год назад ${metrikaDelta(val, pyVal, m.suffix, m.invertDelta)}</span>` : '';
     return `<div class="metric-card">
       <div class="metric-card-label">${m.label}</div>
       <div class="metric-card-value">${display}</div>
@@ -1675,23 +1687,61 @@ function renderMetrikaTraffic() {
 }
 
 // ── МЕТРИКА: Источники трафика ───────────────────────────────
+const CHILD_ICONS = {
+  'ВКонтакте':    'icons/vk.png',
+  'Facebook':     'icons/facebook.png',
+  'Telegram':     'icons/tg.png',
+  'Дзен':         'icons/dzen.png',
+  'Яндекс.Дзен':  'icons/dzen.png',
+};
+function childIconHtml(name) {
+  const src = CHILD_ICONS[name] || 'icons/other.png';
+  return `<img class="src-icon" src="${src}" alt="">`;
+}
+
+const SRC_ICONS = {
+  'Переходы из поисковых систем':        'icons/poisk_sistem.svg',
+  'Переходы по ссылкам на сайтах':       'icons/po_ssilkam.svg',
+  'Прямые заходы':                       'icons/pryamie_zah.svg',
+  'Внутренние переходы':                 'icons/vnutr_perehod.svg',
+  'Переходы из социальных сетей':        'icons/soc_sety.svg',
+  'Переходы по рекламе':                 'icons/reclama.svg',
+  'Переходы из мессенджеров':            'icons/mesendjer.svg',
+  'Переходы из рекомендательных систем': 'icons/recomend.svg',
+};
+
 function renderMetrikaSources() {
-  const rows = mRowsForMonth(allData.metrika_sources, activeMonth);
+  const allRows = mRowsForMonth(allData.metrika_sources, activeMonth);
   const section = document.getElementById('section-metrika-sources');
   const tbody = document.getElementById('metrika-sources-body');
-  if (!rows.length) { section.style.display = 'none'; return; }
+  if (!allRows.length) { section.style.display = 'none'; return; }
   section.style.display = '';
 
-  rows.sort((a, b) => (parseFloat(b.visits)||0) - (parseFloat(a.visits)||0));
-  const total = rows.reduce((s, r) => s + (parseFloat(r.visits)||0), 0);
-  const maxV = Math.max(...rows.map(r => parseFloat(r.visits)||0), 1);
+  const topRows = allRows.filter(r => !r.parent);
+  const childMap = {};
+  allRows.filter(r => r.parent).forEach(r => {
+    if (!childMap[r.parent]) childMap[r.parent] = [];
+    childMap[r.parent].push(r);
+  });
 
-  tbody.innerHTML = rows.map(r => {
+  topRows.sort((a, b) => (parseFloat(b.visits)||0) - (parseFloat(a.visits)||0));
+  const total = topRows.reduce((s, r) => s + (parseFloat(r.visits)||0), 0);
+  const maxV = Math.max(...topRows.map(r => parseFloat(r.visits)||0), 1);
+
+  const html = [];
+  topRows.forEach(r => {
     const v = parseFloat(r.visits) || 0;
     const pct = total ? Math.round(v / total * 100) : 0;
     const bar = Math.round(v / maxV * 100);
-    return `<tr>
-      <td>${r.source || '—'}</td>
+    const children = childMap[r.source] || [];
+    const hasChildren = children.length > 0;
+    const iconSrc = SRC_ICONS[r.source];
+    const iconHtml = iconSrc ? `<img class="src-icon" src="${iconSrc}" alt="">` : '<span class="src-icon"></span>';
+    const toggleSlot = hasChildren
+      ? `<button class="src-toggle" onclick="toggleSrcChildren(this,'${r.source.replace(/'/g,"\\'")}')">▶</button>`
+      : '';
+    html.push(`<tr>
+      <td><div class="src-cell"><span class="src-toggle-wrap">${toggleSlot}</span>${iconHtml}${r.source || '—'}</div></td>
       <td>
         <div class="freq-bar-wrap">
           <span class="freq-num">${v.toLocaleString('ru-RU')}</span>
@@ -1699,8 +1749,34 @@ function renderMetrikaSources() {
         </div>
       </td>
       <td class="share-pct">${pct}%</td>
-    </tr>`;
-  }).join('');
+    </tr>`);
+    if (hasChildren) {
+      children.sort((a, b) => (parseFloat(b.visits)||0) - (parseFloat(a.visits)||0));
+      const maxChild = Math.max(...children.map(c => parseFloat(c.visits)||0), 1);
+      children.forEach(c => {
+        const cv = parseFloat(c.visits) || 0;
+        const cpct = v ? Math.round(cv / v * 100) : 0;
+        const cbar = Math.round(cv / maxChild * 100);
+        html.push(`<tr class="src-child-row" data-parent="${r.source}">
+          <td><div class="src-cell"><span class="src-toggle-wrap"></span>${childIconHtml(c.source)}${c.source || '—'}</div></td>
+          <td>
+            <div class="freq-bar-wrap">
+              <span class="freq-num">${cv.toLocaleString('ru-RU')}</span>
+              <div class="freq-bar-bg"><div class="freq-bar" style="width:${cbar}%"></div></div>
+            </div>
+          </td>
+          <td class="share-pct">${cpct}%</td>
+        </tr>`);
+      });
+    }
+  });
+  tbody.innerHTML = html.join('');
+}
+
+function toggleSrcChildren(btn, sourceKey) {
+  btn.classList.toggle('expanded');
+  const rows = document.querySelectorAll(`#metrika-sources-body .src-child-row[data-parent="${CSS.escape(sourceKey)}"]`);
+  rows.forEach(r => r.classList.toggle('visible'));
 }
 
 // ── МЕТРИКА: Рекламные системы ───────────────────────────────
