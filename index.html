@@ -2112,33 +2112,37 @@ function renderDirectStats() {
     `<button class="direct-campaign-tab${c === directCampaign ? ' active' : ''}" onclick="selectDirectCampaign(${JSON.stringify(c).replace(/"/g,'&quot;')},this)">${c}</button>`
   ).join('');
 
-  // Месяцы из direct_weekly, упорядоченные как в дашборде
+  // Конечный месяц: активный (если в нём есть данные Директа), иначе последний с данными
   const allM = getAllMonths();
   const directMonths = allM.filter(m =>
     allData.direct_weekly.some(r => formatMonth(parseDate(r.date)) === formatMonth(m))
   );
   const activeIdx = directMonths.findIndex(m => formatMonth(m) === formatMonth(activeMonth));
-  const endIdx    = activeIdx >= 0 ? activeIdx : directMonths.length - 1;
-  const startIdx  = Math.max(0, endIdx - directPeriod + 1);
-  let periodMonths = directMonths.slice(startIdx, endIdx + 1);
+  const endMonth  = activeIdx >= 0 ? directMonths[activeIdx] : (directMonths[directMonths.length - 1] || activeMonth);
 
-  let monthlyData = aggregateDirectByMonth(directCampaign, periodMonths);
-
-  // Обрезаем ведущие месяцы без данных для активной кампании
-  const firstWithData = monthlyData.findIndex(d => d !== null);
-  if (firstWithData > 0) {
-    periodMonths = periodMonths.slice(firstWithData);
-    monthlyData  = monthlyData.slice(firstWithData);
+  // Календарный диапазон: количество = выбранному периоду (3/6/12), минимум 3
+  const count = Math.max(3, directPeriod);
+  const periodMonths = [];
+  for (let i = count - 1; i >= 0; i--) {
+    periodMonths.push(new Date(endMonth.getFullYear(), endMonth.getMonth() - i, 1));
   }
+
+  const monthlyData = aggregateDirectByMonth(directCampaign, periodMonths);
 
   renderDirectLineChart(periodMonths, monthlyData);
   renderDirectMonthlyTable(periodMonths, monthlyData);
   renderDirectWeeklyTable();
 }
 
-function renderDirectLineChart(months, monthlyData) {
+function renderDirectLineChart(allMonths, allMonthlyData) {
   const ctx = document.getElementById('directLineChart').getContext('2d');
   if (directLineChart) directLineChart.destroy();
+
+  // Обрезаем пустые месяцы по краям, чтобы график не начинался/заканчивался пустым местом
+  const firstIdx = allMonthlyData.findIndex(d => d !== null);
+  const lastIdx  = allMonthlyData.reduce((acc, d, i) => d !== null ? i : acc, -1);
+  const months      = firstIdx >= 0 ? allMonths.slice(firstIdx, lastIdx + 1) : allMonths;
+  const monthlyData = firstIdx >= 0 ? allMonthlyData.slice(firstIdx, lastIdx + 1) : allMonthlyData;
 
   const labels   = months.map(m => formatMonth(m));
   const checked  = DIRECT_METRICS.filter(m => directChecked.has(m.key));
@@ -2260,15 +2264,7 @@ function renderDirectWeeklyTable() {
 function toggleDirectMetric(key, checkbox) {
   if (checkbox.checked) directChecked.add(key);
   else directChecked.delete(key);
-
-  const allM = getAllMonths();
-  const directMonths = allM.filter(m =>
-    allData.direct_weekly.some(r => formatMonth(parseDate(r.date)) === formatMonth(m))
-  );
-  const activeIdx = directMonths.findIndex(m => formatMonth(m) === formatMonth(activeMonth));
-  const endIdx    = activeIdx >= 0 ? activeIdx : directMonths.length - 1;
-  const periodMonths = directMonths.slice(Math.max(0, endIdx - directPeriod + 1), endIdx + 1);
-  renderDirectLineChart(periodMonths, aggregateDirectByMonth(directCampaign, periodMonths));
+  renderDirectStats();
 }
 
 function setDirectPeriod(months, btn) {
