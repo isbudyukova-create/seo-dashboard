@@ -133,6 +133,43 @@ body {
   color: #fff;
 }
 
+/* Section nav (оглавление) */
+.section-nav {
+  display: flex;
+  gap: 6px;
+  flex-wrap: nowrap;
+  align-items: center;
+  margin-top: 8px;
+}
+.section-nav-btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-family: 'Golos Text', sans-serif;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.section-nav-btn:hover { border-color: var(--text); color: var(--text); }
+.section-nav-btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--surface2);
+}
+.section-nav-btn::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background 0.15s;
+}
+.section-nav-btn.active::before { background: var(--accent); }
+
 /* Section block header */
 .block-header {
   font-family: 'Unbounded', sans-serif;
@@ -596,6 +633,11 @@ tr.row-own td { background: rgba(61,61,200,0.06) !important; }
 
   <div class="month-tabs-wrap" id="month-tabs-wrap">
     <div class="month-tabs" id="month-tabs"></div>
+    <div class="section-nav" id="section-nav">
+      <button class="section-nav-btn" data-target="keys-block-header" onclick="scrollToBlock('keys-block-header')">keys.so</button>
+      <button class="section-nav-btn" data-target="metrika-block-header" onclick="scrollToBlock('metrika-block-header')">Яндекс Метрика</button>
+      <button class="section-nav-btn" data-target="direct-block-header" onclick="scrollToBlock('direct-block-header')">Яндекс Директ</button>
+    </div>
   </div>
 
   <div class="block-header" id="keys-block-header">keys.so</div>
@@ -879,11 +921,11 @@ function datalabelsConfig(count) {
 }
 
 const BRANDS = [
-  { name: 'Садко', title: 'dental.sadkomed.ru', sheetId: '18_wK4ym4OvY5YuCtTI7ZmEZhbrxXdGcflIL8sIQxxMo', domain: 'https://dental.sadkomed.ru' },
-  { name: 'Здоровенок', title: 'zdorovenok.ru', sheetId: '1CsSX3R0eA0mHTM8R3VDTyjenU_buDnQwlgZ6xPVkCK0', domain: 'https://zdorovenok.sadkomed.ru' },
-  { name: 'Дино', title: 'dino.sadkomed.ru', sheetId: '1rWn4O1OG4iQQVZakrHlfEhp0bkC0aqFXu0MjcFTfkQk', domain: 'https://dino.sadkomed.ru' },
-  { name: 'Косметология', title: 'cosmetology.sadkomed.ru', sheetId: '1oBZmlZyeWIoRfuTCZfenWu1V9wr68ynvpYwz8nK6-I0', domain: 'https://cosmetology.sadkomed.ru' },
-  { name: 'КДЛ', title: 'lab.sadkomed.ru', sheetId: '1_tiSoa0L4IYDpmqFQ5uomsgqMuChsDMv9pxQTowUQV0', domain: 'https://lab.sadkomed.ru' },
+  { name: 'Стоматология', title: 'dental.sadkomed.ru', sheetId: '18_wK4ym4OvY5YuCtTI7ZmEZhbrxXdGcflIL8sIQxxMo', domain: 'https://dental.sadkomed.ru', directTab: 'stom' },
+  { name: 'Здоровенок', title: 'zdorovenok.ru', sheetId: '1CsSX3R0eA0mHTM8R3VDTyjenU_buDnQwlgZ6xPVkCK0', domain: 'https://zdorovenok.sadkomed.ru', directTab: 'zdorovenok' },
+  { name: 'Дино', title: 'dino.sadkomed.ru', sheetId: '1rWn4O1OG4iQQVZakrHlfEhp0bkC0aqFXu0MjcFTfkQk', domain: 'https://dino.sadkomed.ru', directTab: 'dino' },
+  { name: 'Косметология', title: 'cosmetology.sadkomed.ru', sheetId: '1oBZmlZyeWIoRfuTCZfenWu1V9wr68ynvpYwz8nK6-I0', domain: 'https://cosmetology.sadkomed.ru', directTab: 'kik' },
+  { name: 'КДЛ', title: 'lab.sadkomed.ru', sheetId: '1_tiSoa0L4IYDpmqFQ5uomsgqMuChsDMv9pxQTowUQV0', domain: 'https://lab.sadkomed.ru', directTab: null },
 ];
 const DIRECT_SHEET_ID = '1pKM-243Fol0oPcbcyD6fTQiUBEuXQVKzWGrjMMjOMVE';
 let activeBrand = 0;
@@ -902,13 +944,16 @@ let directPeriod = 6;
 let directCampaign = null;
 let directChecked = new Set(['clicks', 'cost']);
 const DIRECT_METRICS = [
-  { key: 'impressions', label: 'Показы',      color: '#4E8AF4', fmt: n => Math.round(n).toLocaleString('ru-RU') },
-  { key: 'clicks',      label: 'Клики',       color: '#FF3080', fmt: n => Math.round(n).toLocaleString('ru-RU') },
-  { key: 'cost',        label: 'Расходы, ₽',  color: '#6CBE6C', fmt: n => Math.round(n).toLocaleString('ru-RU') },
-  { key: 'ctr',         label: 'CTR',         color: '#FFA040', fmt: n => n.toFixed(1) + '%' },
-  { key: 'cpc',         label: 'CPC, ₽',      color: '#9B85C4', fmt: n => Math.round(n).toLocaleString('ru-RU') },
-  { key: 'conversions', label: 'Конверсии',   color: '#FF6B6B', fmt: n => Math.round(n).toLocaleString('ru-RU') },
-  { key: 'cpa',         label: 'CPA, ₽',      color: '#4DD0C4', fmt: n => Math.round(n).toLocaleString('ru-RU') },
+  { key: 'sov',         label: 'Доля показов',              color: '#4E8AF4', fmt: n => n.toFixed(1) + '%' },
+  { key: 'impressions', label: 'Показы',                    color: '#7B9EF4', fmt: n => Math.round(n).toLocaleString('ru-RU') },
+  { key: 'clicks',      label: 'Клики',                     color: '#FF3080', fmt: n => Math.round(n).toLocaleString('ru-RU') },
+  { key: 'cost',        label: 'Бюджет, ₽',                 color: '#6CBE6C', fmt: n => Math.round(n).toLocaleString('ru-RU') + ' ₽' },
+  { key: 'bounces',     label: 'Отказы, %',                 color: '#FFA040', fmt: n => (n * 100).toFixed(1) + '%' },
+  { key: 'cpc',         label: 'За один клик (CPC, ₽)',     color: '#9B85C4', fmt: n => Math.round(n).toLocaleString('ru-RU') + ' ₽' },
+  { key: 'ctr',         label: 'Кликательность (CTR, %)',   color: '#FF8C42', fmt: n => n.toFixed(1) + '%' },
+  { key: 'cpa',         label: 'За одну конверсию (CPA, ₽)',color: '#4DD0C4', fmt: n => Math.round(n).toLocaleString('ru-RU') + ' ₽' },
+  { key: 'conversions', label: 'Конверсии',                 color: '#FF6B6B', fmt: n => Math.round(n).toLocaleString('ru-RU') },
+  { key: 'conv_rate',   label: '% конверсий',               color: '#E86BC4', fmt: n => n.toFixed(1) + '%' },
 ];
 const ROWS_DEFAULT = 15;
 
@@ -946,7 +991,8 @@ async function fetchSheet(name) {
 }
 
 async function fetchDirectSheet() {
-  const tab = BRANDS[activeBrand].name;
+  const tab = BRANDS[activeBrand].directTab;
+  if (!tab) return [];
   const url = `https://docs.google.com/spreadsheets/d/${DIRECT_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
   const r = await fetch(url);
   const text = await r.text();
@@ -956,7 +1002,7 @@ async function fetchDirectSheet() {
 function parseCSV(text) {
   const lines = text.trim().split('\n');
   if (lines.length < 2) return [];
-  const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim());
+  const headers = splitCSVLine(lines[0]).map(h => h.replace(/^"|"$/g, '').trim());
   return lines.slice(1).map(line => {
     const vals = splitCSVLine(line);
     const obj = {};
@@ -1082,6 +1128,32 @@ function updateBlockHeaders() {
   const anyVisible = ids => ids.some(id => document.getElementById(id).style.display !== 'none');
   document.getElementById('keys-block-header').style.display = anyVisible(keysIds) ? '' : 'none';
   document.getElementById('metrika-block-header').style.display = anyVisible(metrikaIds) ? '' : 'none';
+  // оглавление: прячем кнопку, если её блок скрыт
+  document.querySelectorAll('.section-nav-btn').forEach(btn => {
+    const header = document.getElementById(btn.dataset.target);
+    btn.style.display = (header && header.style.display !== 'none') ? '' : 'none';
+  });
+}
+
+function scrollToBlock(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const wrap = document.getElementById('month-tabs-wrap');
+  const offset = wrap.offsetHeight + 12;
+  const y = el.getBoundingClientRect().top + window.scrollY - offset;
+  window.scrollTo({ top: y, behavior: 'smooth' });
+}
+
+function updateSectionNavActive() {
+  const wrap = document.getElementById('month-tabs-wrap');
+  const offset = wrap.offsetHeight + 24;
+  const buttons = [...document.querySelectorAll('.section-nav-btn')].filter(b => b.style.display !== 'none');
+  let activeId = buttons.length ? buttons[0].dataset.target : null;
+  buttons.forEach(btn => {
+    const header = document.getElementById(btn.dataset.target);
+    if (header && header.getBoundingClientRect().top - offset <= 0) activeId = btn.dataset.target;
+  });
+  buttons.forEach(btn => btn.classList.toggle('active', btn.dataset.target === activeId));
 }
 
 function renderAll() {
@@ -1099,6 +1171,7 @@ function renderAll() {
   renderMetrikaPages();
   renderDirectStats();
   updateBlockHeaders();
+  updateSectionNavActive();
 }
 
 let orgSort = { col: 'top10', dir: 'desc' };
@@ -1903,28 +1976,77 @@ function renderMetrikaPages() {
 
 function normalizeDirectRows(rows) {
   function num(v) { const s = String(v || '0').replace(',', '.'); return (s === '--' || s === '') ? '0' : s; }
+  // Первый проход: считаем вхождения каждой граничной недели по кампании
+  const boundaryTotal = {};
+  rows.forEach(r => {
+    const campaign = r['Название кампании'] || r.campaign || '';
+    const rawWeek  = r['Неделя'] || r.date || '';
+    if (!campaign || !rawWeek.includes(' - ')) return;
+    const [startStr, endStr] = rawWeek.split(' - ').map(s => s.trim());
+    const startD = parseDate(startStr), endD = parseDate(endStr);
+    if (startD.getMonth() !== endD.getMonth() || startD.getFullYear() !== endD.getFullYear()) {
+      const key = campaign + '||' + rawWeek;
+      boundaryTotal[key] = (boundaryTotal[key] || 0) + 1;
+    }
+  });
+  const boundarySeen = {};
   return rows.map(r => {
     const campaign = r['Название кампании'] || r.campaign || '';
     if (!campaign) return null;
-    let dateStr = r['Неделя'] || r.date || '';
-    if (dateStr.includes(' - ')) dateStr = dateStr.split(' - ')[0].trim();
-    const bouncesRaw = r['Отказы, %'] !== undefined ? r['Отказы, %'] : null;
+    const rawWeek = r['Неделя'] || r.date || '';
+    let dateStr = rawWeek, weekEndStr = '';
+    if (rawWeek.includes(' - ')) {
+      const [startStr, endStr] = rawWeek.split(' - ').map(s => s.trim());
+      const startD = parseDate(startStr);
+      const endD   = parseDate(endStr);
+      const isBoundary = startD.getMonth() !== endD.getMonth() || startD.getFullYear() !== endD.getFullYear();
+      if (isBoundary) {
+        const key = campaign + '||' + rawWeek;
+        const total = boundaryTotal[key] || 1;
+        boundarySeen[key] = (boundarySeen[key] || 0) + 1;
+        const firstOfEndMonth = `01.${String(endD.getMonth()+1).padStart(2,'0')}.${endD.getFullYear()}`;
+        const lastOfStartMonth = new Date(startD.getFullYear(), startD.getMonth() + 1, 0);
+        const lastOfStartStr = `${String(lastOfStartMonth.getDate()).padStart(2,'0')}.${String(startD.getMonth()+1).padStart(2,'0')}.${startD.getFullYear()}`;
+        if (total === 1) {
+          // одиночная граничная: относится к месяцу конца (напр. 30.03–05.04 → апрель 1–5)
+          dateStr    = firstOfEndMonth;
+          weekEndStr = endStr;
+        } else if (boundarySeen[key] === 1) {
+          // первое из двух: месяц начала (напр. 27.04–03.05 первый раз → апрель, до 30.04)
+          dateStr    = startStr;
+          weekEndStr = lastOfStartStr;
+        } else {
+          // второе из двух: месяц конца (напр. 27.04–03.05 второй раз → май 1–3)
+          dateStr    = firstOfEndMonth;
+          weekEndStr = endStr;
+        }
+      } else {
+        dateStr    = startStr;
+        weekEndStr = endStr;
+      }
+    }
+    const bouncesRaw = r['Отказы %'] !== undefined ? r['Отказы %'] : null;
     const bounces = bouncesRaw !== null
       ? String(parseFloat(num(bouncesRaw)) / 100)
       : num(r.bounces);
+    const impressions = parseFloat(num(r['Показы']))  || 0;
+    const clicks      = parseFloat(num(r['Клики']))    || 0;
+    const cost        = parseFloat(num(r['Расход ₽'])) || 0;
+    const conversions = parseFloat(num(r['Action']))   || 0;
     return {
       date:        dateStr,
+      weekEnd:     weekEndStr,
       campaign,
-      sov:         num(r.sov || 0),
-      impressions: num(r['Показы']     || r.impressions),
-      clicks:      num(r['Клики']      || r.clicks),
-      cost:        num(r['Расход, ₽']  || r.cost),
-      ctr:         num(r['CTR, %']     || r.ctr),
-      cpc:         num(r['CPC, ₽']     || r.cpc),
+      sov:         num(r['Ср. объём трафика'] || 0),
+      impressions: String(impressions),
+      clicks:      String(clicks),
+      cost:        String(cost),
       bounces,
-      conversions: num(r['Конверсии']  || r.conversions),
-      conv_rate:   num(r['CR, %']      || r.conv_rate || 0),
-      cpa:         num(r['CPA, ₽']     || r.cpa),
+      conversions: String(conversions),
+      ctr:         impressions > 0 ? String(clicks / impressions * 100) : '0',
+      cpc:         clicks      > 0 ? String(cost / clicks)              : '0',
+      cpa:         conversions > 0 ? String(cost / conversions)         : '0',
+      conv_rate:   clicks      > 0 ? String(conversions / clicks * 100) : '0',
     };
   }).filter(Boolean);
 }
@@ -1943,10 +2065,15 @@ function aggregateDirectByMonth(campaign, months) {
     const clicks      = rows.reduce((s, r) => s + (parseFloat(r.clicks) || 0), 0);
     const cost        = rows.reduce((s, r) => s + (parseFloat(r.cost) || 0), 0);
     const conversions = rows.reduce((s, r) => s + (parseFloat(r.conversions) || 0), 0);
+    const sovRows     = rows.filter(r => parseFloat(r.sov) > 0);
+    const sov         = sovRows.length > 0 ? sovRows.reduce((s, r) => s + (parseFloat(r.sov) || 0), 0) / sovRows.length : 0;
+    const bRows       = rows.filter(r => parseFloat(r.bounces) > 0);
+    const bounces     = bRows.length > 0 ? bRows.reduce((s, r) => s + (parseFloat(r.bounces) || 0), 0) / bRows.length : 0;
     const ctr         = impressions > 0 ? clicks / impressions * 100 : 0;
     const cpc         = clicks > 0 ? cost / clicks : 0;
     const cpa         = conversions > 0 ? cost / conversions : 0;
-    return { impressions, clicks, cost, ctr, cpc, conversions, cpa };
+    const conv_rate   = clicks > 0 ? conversions / clicks * 100 : 0;
+    return { sov, impressions, clicks, cost, bounces, cpc, ctr, cpa, conversions, conv_rate };
   });
 }
 
@@ -1958,7 +2085,9 @@ function getDirectWeeklyData(campaign, month) {
   return rows.map(r => {
     const start = parseDate(r.date);
     const lastDay = new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate();
-    const endDay = Math.min(start.getDate() + 6, lastDay);
+    const endDay = r.weekEnd
+      ? parseDate(r.weekEnd).getDate()
+      : Math.min(start.getDate() + 6, lastDay);
     const label = `${start.getDate()}–${endDay} ${monthNames[start.getMonth()]}`;
     return { label, ...r };
   });
@@ -2055,9 +2184,9 @@ function renderDirectLineChart(months, monthlyData) {
         x: { grid: { color: gridColor }, ticks: { font: { family: 'Golos Text', size: 11 } } },
         y: {
           min: 0,
-          suggestedMax: 100,
+          max: 120,
           grid: { color: gridColor },
-          ticks: { font: { family: 'Golos Text', size: 11 }, callback: v => v <= 100 ? v + '%' : null }
+          ticks: { stepSize: 20, font: { family: 'Golos Text', size: 11 }, callback: v => v <= 100 ? v + '%' : null }
         }
       }
     }
@@ -2198,6 +2327,7 @@ init();
   window.addEventListener('scroll', () => {
     _btn.classList.toggle('visible', window.scrollY > 300);
     _wrap.classList.toggle('scrolled', window.scrollY > 60);
+    updateSectionNavActive();
   });
 </script>
 </body>
