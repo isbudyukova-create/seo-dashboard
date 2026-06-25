@@ -941,7 +941,7 @@ let visitsPeriod = 12;
 let posChart = null, trafficChart = null;
 let directLineChart = null;
 let directPeriod = 6;
-let directCampaign = null;
+let directCampaigns = new Set();
 let directChecked = new Set(['clicks', 'cost']);
 const DIRECT_METRICS = [
   { key: 'sov',         label: 'Доля показов',              color: '#4E8AF4', fmt: n => n.toFixed(1) + '%' },
@@ -972,7 +972,7 @@ async function switchBrand(idx, btn) {
   posFilter = 0;
   showAll = false;
   adsShowAll = false;
-  directCampaign = null;
+  directCampaigns.clear();
   document.querySelectorAll('.pos-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
   await init();
   // восстанавливаем месяц если такой есть у нового бренда
@@ -2055,41 +2055,58 @@ function getDirectCampaigns() {
   return [...new Set(allData.direct_weekly.map(r => r.campaign).filter(Boolean))].sort();
 }
 
-function aggregateDirectByMonth(campaign, months) {
+// Свести набор строк Директа в одну запись: суммы по складываемым метрикам,
+// производные (CPC, CTR, CPA, % конверсий) — по общей формуле из сумм,
+// доля показов и отказы — среднее (их складывать некорректно).
+function aggregateDirectRows(rows) {
+  if (!rows.length) return null;
+  const impressions = rows.reduce((s, r) => s + (parseFloat(r.impressions) || 0), 0);
+  const clicks      = rows.reduce((s, r) => s + (parseFloat(r.clicks) || 0), 0);
+  const cost        = rows.reduce((s, r) => s + (parseFloat(r.cost) || 0), 0);
+  const conversions = rows.reduce((s, r) => s + (parseFloat(r.conversions) || 0), 0);
+  const sovRows     = rows.filter(r => parseFloat(r.sov) > 0);
+  const sov         = sovRows.length > 0 ? sovRows.reduce((s, r) => s + (parseFloat(r.sov) || 0), 0) / sovRows.length : 0;
+  const bRows       = rows.filter(r => parseFloat(r.bounces) > 0);
+  const bounces     = bRows.length > 0 ? bRows.reduce((s, r) => s + (parseFloat(r.bounces) || 0), 0) / bRows.length : 0;
+  const ctr         = impressions > 0 ? clicks / impressions * 100 : 0;
+  const cpc         = clicks > 0 ? cost / clicks : 0;
+  const cpa         = conversions > 0 ? cost / conversions : 0;
+  const conv_rate   = clicks > 0 ? conversions / clicks * 100 : 0;
+  return { sov, impressions, clicks, cost, bounces, cpc, ctr, cpa, conversions, conv_rate };
+}
+
+function aggregateDirectByMonth(campaigns, months) {
   return months.map(month => {
     const rows = allData.direct_weekly.filter(r =>
-      r.campaign === campaign && formatMonth(parseDate(r.date)) === formatMonth(month)
+      campaigns.has(r.campaign) && formatMonth(parseDate(r.date)) === formatMonth(month)
     );
-    if (!rows.length) return null;
-    const impressions = rows.reduce((s, r) => s + (parseFloat(r.impressions) || 0), 0);
-    const clicks      = rows.reduce((s, r) => s + (parseFloat(r.clicks) || 0), 0);
-    const cost        = rows.reduce((s, r) => s + (parseFloat(r.cost) || 0), 0);
-    const conversions = rows.reduce((s, r) => s + (parseFloat(r.conversions) || 0), 0);
-    const sovRows     = rows.filter(r => parseFloat(r.sov) > 0);
-    const sov         = sovRows.length > 0 ? sovRows.reduce((s, r) => s + (parseFloat(r.sov) || 0), 0) / sovRows.length : 0;
-    const bRows       = rows.filter(r => parseFloat(r.bounces) > 0);
-    const bounces     = bRows.length > 0 ? bRows.reduce((s, r) => s + (parseFloat(r.bounces) || 0), 0) / bRows.length : 0;
-    const ctr         = impressions > 0 ? clicks / impressions * 100 : 0;
-    const cpc         = clicks > 0 ? cost / clicks : 0;
-    const cpa         = conversions > 0 ? cost / conversions : 0;
-    const conv_rate   = clicks > 0 ? conversions / clicks * 100 : 0;
-    return { sov, impressions, clicks, cost, bounces, cpc, ctr, cpa, conversions, conv_rate };
+    return aggregateDirectRows(rows);
   });
 }
 
-function getDirectWeeklyData(campaign, month) {
+function getDirectWeeklyData(campaigns, month) {
   const rows = allData.direct_weekly
-    .filter(r => r.campaign === campaign && formatMonth(parseDate(r.date)) === formatMonth(month))
+    .filter(r => campaigns.has(r.campaign) && formatMonth(parseDate(r.date)) === formatMonth(month))
     .sort((a, b) => parseDate(a.date) - parseDate(b.date));
+  if (!rows.length) return [];
   const monthNames = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
-  return rows.map(r => {
-    const start = parseDate(r.date);
+  // Сгруппировать недели по дате начала, чтобы свести несколько РК в одну колонку
+  const byWeek = new Map();
+  rows.forEach(r => {
+    if (!byWeek.has(r.date)) byWeek.set(r.date, []);
+    byWeek.get(r.date).push(r);
+  });
+  const weekKeys = [...byWeek.keys()].sort((a, b) => parseDate(a) - parseDate(b));
+  return weekKeys.map(key => {
+    const wRows = byWeek.get(key);
+    const start = parseDate(key);
     const lastDay = new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate();
-    const endDay = r.weekEnd
-      ? parseDate(r.weekEnd).getDate()
+    const weekEndRow = wRows.find(r => r.weekEnd);
+    const endDay = weekEndRow
+      ? parseDate(weekEndRow.weekEnd).getDate()
       : Math.min(start.getDate() + 6, lastDay);
     const label = `${start.getDate()}–${endDay} ${monthNames[start.getMonth()]}`;
-    return { label, ...r };
+    return { label, ...aggregateDirectRows(wRows) };
   });
 }
 
@@ -2105,11 +2122,13 @@ function renderDirectStats() {
   header.style.display  = '';
 
   const campaigns = getDirectCampaigns();
-  if (!directCampaign || !campaigns.includes(directCampaign)) directCampaign = campaigns[0];
+  // Убрать выбранные РК, которых больше нет; гарантировать хотя бы одну выбранную
+  directCampaigns.forEach(c => { if (!campaigns.includes(c)) directCampaigns.delete(c); });
+  if (directCampaigns.size === 0 && campaigns.length) directCampaigns.add(campaigns[0]);
 
-  // Табы кампаний
+  // Табы кампаний (мультивыбор)
   document.getElementById('direct-campaign-tabs').innerHTML = campaigns.map(c =>
-    `<button class="direct-campaign-tab${c === directCampaign ? ' active' : ''}" onclick="selectDirectCampaign(${JSON.stringify(c).replace(/"/g,'&quot;')},this)">${c}</button>`
+    `<button class="direct-campaign-tab${directCampaigns.has(c) ? ' active' : ''}" onclick="toggleDirectCampaign(${JSON.stringify(c).replace(/"/g,'&quot;')})">${c}</button>`
   ).join('');
 
   // Конечный месяц: активный (если в нём есть данные Директа), иначе последний с данными
@@ -2127,7 +2146,7 @@ function renderDirectStats() {
     periodMonths.push(new Date(endMonth.getFullYear(), endMonth.getMonth() - i, 1));
   }
 
-  const monthlyData = aggregateDirectByMonth(directCampaign, periodMonths);
+  const monthlyData = aggregateDirectByMonth(directCampaigns, periodMonths);
 
   renderDirectLineChart(periodMonths, monthlyData);
   renderDirectMonthlyTable(periodMonths, monthlyData);
@@ -2241,7 +2260,7 @@ function renderDirectWeeklyTable() {
   const table = document.getElementById('direct-weekly-table');
   document.getElementById('direct-weekly-month-label').textContent = activeMonth ? formatMonth(activeMonth) : '';
 
-  const weeks = getDirectWeeklyData(directCampaign, activeMonth);
+  const weeks = getDirectWeeklyData(directCampaigns, activeMonth);
   if (!weeks.length) {
     table.innerHTML = '<tbody><tr><td colspan="2" class="error-msg" style="padding:16px">Нет данных за этот месяц</td></tr></tbody>';
     return;
@@ -2274,10 +2293,13 @@ function setDirectPeriod(months, btn) {
   renderDirectStats();
 }
 
-function selectDirectCampaign(campaign, btn) {
-  directCampaign = campaign;
-  document.querySelectorAll('.direct-campaign-tab').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+function toggleDirectCampaign(campaign) {
+  if (directCampaigns.has(campaign)) {
+    if (directCampaigns.size === 1) return; // оставить хотя бы одну выбранную РК
+    directCampaigns.delete(campaign);
+  } else {
+    directCampaigns.add(campaign);
+  }
   renderDirectStats();
 }
 
