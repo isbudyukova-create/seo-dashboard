@@ -483,6 +483,7 @@ body {
 .page-cat-btn[data-cat="questions"].active { background: #f5eeff; color: #7b35c8; }
 .page-cat-btn[data-cat="contacts"].active  { background: #e6f4ee; color: #1a7a45; }
 .page-cat-btn[data-cat="articles"].active  { background: #e6f4f4; color: #1a7070; }
+.page-cat-btn[data-cat="staff"].active     { background: #fdecf2; color: #c2185b; }
 .cat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .page-cat-reset {
   width: 26px; height: 26px; border-radius: 50%;
@@ -498,6 +499,7 @@ tr.cat-news      td { background: #fffbf0 !important; }
 tr.cat-questions td { background: #faf0ff !important; }
 tr.cat-contacts  td { background: #f0f8f4 !important; }
 tr.cat-articles  td { background: #f0f8f8 !important; }
+tr.cat-staff     td { background: #fdf2f8 !important; }
 
 
 /* Sortable table headers */
@@ -622,6 +624,7 @@ tr.row-own td { background: rgba(61,61,200,0.06) !important; }
           <button class="brand-btn" onclick="switchBrand(2, this)">Дино</button>
           <button class="brand-btn" onclick="switchBrand(3, this)">Косметология</button>
           <button class="brand-btn" onclick="switchBrand(4, this)">КДЛ</button>
+          <button class="brand-btn" onclick="switchBrand(5, this)">Офтальмология</button>
         </div>
         <div class="loading-badge" id="status-badge">
           <span class="loading-dot"></span>
@@ -831,6 +834,7 @@ tr.row-own td { background: rgba(61,61,200,0.06) !important; }
           <span class="queries-title">Топ страниц по визитам</span>
           <div class="page-cat-filter" id="page-cat-filter">
             <button class="page-cat-btn" data-cat="services" onclick="togglePageCat('services',this)"><span class="cat-dot" style="background:#3d3dc8"></span>Услуги</button>
+            <button class="page-cat-btn" data-cat="staff" onclick="togglePageCat('staff',this)"><span class="cat-dot" style="background:#d6336c"></span>Врачи</button>
             <button class="page-cat-btn" data-cat="news" onclick="togglePageCat('news',this)"><span class="cat-dot" style="background:#f0a500"></span>Новости</button>
             <button class="page-cat-btn" data-cat="questions" onclick="togglePageCat('questions',this)"><span class="cat-dot" style="background:#9b5de5"></span>Вопросы</button>
             <button class="page-cat-btn" data-cat="contacts" onclick="togglePageCat('contacts',this)"><span class="cat-dot" style="background:#1a7a45"></span>Контакты</button>
@@ -926,6 +930,7 @@ const BRANDS = [
   { name: 'Дино', title: 'dino.sadkomed.ru', sheetId: '1rWn4O1OG4iQQVZakrHlfEhp0bkC0aqFXu0MjcFTfkQk', domain: 'https://dino.sadkomed.ru', directTab: 'dino' },
   { name: 'Косметология', title: 'cosmetology.sadkomed.ru', sheetId: '1oBZmlZyeWIoRfuTCZfenWu1V9wr68ynvpYwz8nK6-I0', domain: 'https://cosmetology.sadkomed.ru', directTab: 'kik' },
   { name: 'КДЛ', title: 'lab.sadkomed.ru', sheetId: '1_tiSoa0L4IYDpmqFQ5uomsgqMuChsDMv9pxQTowUQV0', domain: 'https://lab.sadkomed.ru', directTab: null },
+  { name: 'Офтальмология', title: 'vizhu.sadkomed.ru', sheetId: '1QYetwmeWqpntHSpeu7fs6rKE-H-ojNj-P368Yl0o4BM', domain: 'https://vizhu.sadkomed.ru', directTab: 'oftalm' },
 ];
 const DIRECT_SHEET_ID = '1pKM-243Fol0oPcbcyD6fTQiUBEuXQVKzWGrjMMjOMVE';
 let activeBrand = 0;
@@ -1545,14 +1550,17 @@ const PAGE_CATEGORIES = {
   news:      { pattern: /\/(novosti|news)\//i,            color: 'cat-news' },
   questions: { pattern: /\/voprosy\//i,                  color: 'cat-questions' },
   articles:  { pattern: /\/(stati|blog|articles|article)\//i, color: 'cat-articles' },
-  services:  { pattern: /./,                             color: 'cat-services' }, // всё остальное
+  staff:     { pattern: /\/staff\//i,                    color: 'cat-staff' },
+  services:  { pattern: /./,                             color: 'cat-services' }, // всё остальное, кроме главной
 };
 
 function getPageCat(path) {
+  if (!path || path === '/') return null; // главная — без категории
   for (const [key, cfg] of Object.entries(PAGE_CATEGORIES)) {
     if (key === 'services') continue; // проверяем в конце
     if (cfg.pattern.test(path)) return key;
   }
+  if (/price/i.test(path) || /\/sales\//i.test(path)) return null; // прайсы и акции — не услуги
   return 'services';
 }
 
@@ -1917,9 +1925,9 @@ function renderMetrikaPages() {
   document.getElementById('metrika-pages-count').textContent = `${rows.length} страниц`;
 
   // Считаем количество страниц по категориям и обновляем кнопки
-  const catCounts = { services: 0, news: 0, questions: 0, contacts: 0, articles: 0 };
-  rows.forEach(r => { const cat = getPageCat(r.page || '/'); catCounts[cat] = (catCounts[cat] || 0) + 1; });
-  const catLabels = { services: 'Услуги', news: 'Новости', questions: 'Вопросы', contacts: 'Контакты', articles: 'Статьи' };
+  const catCounts = { services: 0, staff: 0, news: 0, questions: 0, contacts: 0, articles: 0 };
+  rows.forEach(r => { const cat = getPageCat(r.page || '/'); if (cat) catCounts[cat] = (catCounts[cat] || 0) + 1; });
+  const catLabels = { services: 'Услуги', staff: 'Врачи', news: 'Новости', questions: 'Вопросы', contacts: 'Контакты', articles: 'Статьи' };
   document.querySelectorAll('.page-cat-btn').forEach(btn => {
     const cat = btn.dataset.cat;
     const dot = btn.querySelector('.cat-dot');
