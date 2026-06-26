@@ -25,6 +25,11 @@ var METRIKA_BRANDS = [
     name: 'Дино',
     sheetId: '1rWn4O1OG4iQQVZakrHlfEhp0bkC0aqFXu0MjcFTfkQk',
     counterId: '91758152'
+  },
+  {
+    name: 'Офтальмология',
+    sheetId: '1QYetwmeWqpntHSpeu7fs6rKE-H-ojNj-P368Yl0o4BM',
+    counterId: '102016053'
   }
 ];
 
@@ -44,6 +49,8 @@ function metrikaKdlFull()          { updateMetrikaBrand(METRIKA_BRANDS[3], true)
 function metrikaKdlNew()           { updateMetrikaBrand(METRIKA_BRANDS[3], false); }
 function metrikaDinoFull()         { updateMetrikaBrand(METRIKA_BRANDS[4], true); }
 function metrikaDinoNew()          { updateMetrikaBrand(METRIKA_BRANDS[4], false); }
+function metrikaOftalmFull()       { updateMetrikaBrand(METRIKA_BRANDS[5], true); }
+function metrikaOftalmNew()        { updateMetrikaBrand(METRIKA_BRANDS[5], false); }
 
 // --- Только источники (metrika_sources) ---
 function metrikaStomatologySourcesFull()  { updateSourcesOnly(METRIKA_BRANDS[0], true); }
@@ -56,6 +63,8 @@ function metrikaKdlSourcesFull()          { updateSourcesOnly(METRIKA_BRANDS[3],
 function metrikaKdlSourcesNew()           { updateSourcesOnly(METRIKA_BRANDS[3], false); }
 function metrikaDinoSourcesFull()         { updateSourcesOnly(METRIKA_BRANDS[4], true); }
 function metrikaDinoSourcesNew()          { updateSourcesOnly(METRIKA_BRANDS[4], false); }
+function metrikaOftalmSourcesFull()       { updateSourcesOnly(METRIKA_BRANDS[5], true); }
+function metrikaOftalmSourcesNew()        { updateSourcesOnly(METRIKA_BRANDS[5], false); }
 
 // Перезаписать metrika_sources у всех брендов (для миграции)
 function runAllSourcesFull() {
@@ -260,11 +269,7 @@ function fetchBytime(counterId, metrics, dimensions, date1, date2, attribution, 
   if (dimensions) url += '&dimensions=' + encodeURIComponent(dimensions);
   if (attribution) url += '&attribution=' + attribution;
   if (filters) url += '&filters=' + encodeURIComponent(filters);
-  Logger.log('GET ' + url);
-  var res = UrlFetchApp.fetch(url, { headers: { Authorization: 'OAuth ' + TOKEN }, muteHttpExceptions: true });
-  var data = JSON.parse(res.getContentText());
-  if (data.errors) Logger.log('Ошибка: ' + JSON.stringify(data.errors));
-  return data;
+  return fetchWithRetry(url);
 }
 
 function fetchData(counterId, metrics, dimensions, date1, date2) {
@@ -274,10 +279,25 @@ function fetchData(counterId, metrics, dimensions, date1, date2) {
     '&dimensions=' + encodeURIComponent(dimensions) +
     '&date1=' + date1 + '&date2=' + date2 +
     '&sort=' + encodeURIComponent('-' + metrics.split(',')[0]) +
-    '&sampling=medium&lang=ru&limit=30';
-  var res = UrlFetchApp.fetch(url, { headers: { Authorization: 'OAuth ' + TOKEN }, muteHttpExceptions: true });
-  var data = JSON.parse(res.getContentText());
-  if (data.errors) Logger.log('Ошибка: ' + JSON.stringify(data.errors));
+    '&lang=ru&limit=30';
+  return fetchWithRetry(url);
+}
+
+// Запрос с автоповтором: при ошибке (напр. «запрос слишком сложный»)
+// повторяет с более грубым семплированием — full → medium → low
+function fetchWithRetry(baseUrl) {
+  var accuracies = ['full', 'medium', 'low'];
+  var data;
+  for (var a = 0; a < accuracies.length; a++) {
+    var url = baseUrl + '&accuracy=' + accuracies[a];
+    Logger.log('GET ' + url);
+    var res = UrlFetchApp.fetch(url, { headers: { Authorization: 'OAuth ' + TOKEN }, muteHttpExceptions: true });
+    data = JSON.parse(res.getContentText());
+    if (!data.errors) return data;
+    Logger.log('Ошибка (accuracy=' + accuracies[a] + '): ' + JSON.stringify(data.errors));
+    if (a < accuracies.length - 1) Utilities.sleep(1000);
+  }
+  Logger.log('Не удалось получить данные даже с accuracy=low');
   return data;
 }
 
