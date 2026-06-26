@@ -40,6 +40,7 @@ body {
 /* Header */
 .header { margin-bottom: 36px; }
 .header-top { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
+.header-titles { flex: 1 1 100%; }
 .brand-name {
   font-family: 'Unbounded', sans-serif;
   font-size: 13px;
@@ -613,11 +614,11 @@ tr.row-own td { background: rgba(61,61,200,0.06) !important; }
 
   <div class="header">
     <div class="header-top">
-      <div>
+      <div class="header-titles">
         <div class="brand-name">SEO-отчёт</div>
         <div class="header-title" id="header-title">dental.sadkomed.ru</div>
       </div>
-      <div style="display:flex;align-items:center;gap:12px;">
+      <div style="display:flex;align-items:center;gap:12px;margin-left:auto;">
         <div class="brand-switcher">
           <button class="brand-btn active" onclick="switchBrand(0, this)">Стоматология</button>
           <button class="brand-btn" onclick="switchBrand(1, this)">Здоровенок</button>
