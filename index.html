@@ -1549,11 +1549,16 @@ function setStatus(text, loading) {
 const PAGE_CATEGORIES = {
   contacts:  { pattern: /\/contacts\//i,                color: 'cat-contacts' },
   news:      { pattern: /\/(novosti|news)\//i,            color: 'cat-news' },
-  questions: { pattern: /\/voprosy\//i,                  color: 'cat-questions' },
+  questions: { pattern: /\/(voprosy|vopros)\//i,         color: 'cat-questions' },
   articles:  { pattern: /\/(stati|blog|articles|article)\//i, color: 'cat-articles' },
-  staff:     { pattern: /\/staff\//i,                    color: 'cat-staff' },
-  services:  { pattern: /./,                             color: 'cat-services' }, // всё остальное, кроме главной
+  staff:     { pattern: /\/(staff|spetsialisty)\//i,     color: 'cat-staff' },
+  services:  { pattern: /\/(uslugi|services)\//i,        color: 'cat-services' },
 };
+
+// Если в данных встречается явный идентификатор услуг (/uslugi/ или /services/),
+// то к «Услугам» относятся ТОЛЬКО такие страницы. Если идентификатора нет —
+// «Услуги» работают как catch-all (всё, кроме главной и исключений).
+let servicesExplicitMode = false;
 
 function getPageCat(path) {
   if (!path || path === '/') return null; // главная — без категории
@@ -1561,8 +1566,12 @@ function getPageCat(path) {
     if (key === 'services') continue; // проверяем в конце
     if (cfg.pattern.test(path)) return key;
   }
+  if (servicesExplicitMode) {
+    // Явный режим: услуги — только страницы с идентификатором services/uslugi
+    return PAGE_CATEGORIES.services.pattern.test(path) ? 'services' : null;
+  }
   if (/price/i.test(path) || /\/sales\//i.test(path)) return null; // прайсы и акции — не услуги
-  return 'services';
+  return 'services'; // catch-all: всё остальное
 }
 
 let activeCats = new Set();
@@ -1924,6 +1933,10 @@ function renderMetrikaPages() {
   rows.sort((a, b) => (parseFloat(b.visits)||0) - (parseFloat(a.visits)||0));
 
   document.getElementById('metrika-pages-count').textContent = `${rows.length} страниц`;
+
+  // Определяем режим услуг: если хотя бы одна страница имеет идентификатор
+  // services/uslugi — переходим в явный режим (услуги = только эти страницы)
+  servicesExplicitMode = rows.some(r => PAGE_CATEGORIES.services.pattern.test(r.page || ''));
 
   // Считаем количество страниц по категориям и обновляем кнопки
   const catCounts = { services: 0, staff: 0, news: 0, questions: 0, contacts: 0, articles: 0 };
