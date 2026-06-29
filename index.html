@@ -1258,9 +1258,9 @@ function domainName(domain) {
 }
 
 function brandRow(month) {
-  const domain = BRANDS[activeBrand].title;
+  const domain = (BRANDS[activeBrand].domain || '').replace(/^https?:\/\//, '');
   const rows = rowsForMonth(allData.positions, month);
-  return rows.find(r => r.domain === domain) || rows[0];
+  return rows.find(r => r.domain === domain) || null;
 }
 
 function renderMetrics(months) {
