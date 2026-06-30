@@ -624,12 +624,12 @@ tr.row-own td { background: rgba(61,61,200,0.06) !important; }
       <div style="display:flex;align-items:center;gap:12px;margin-left:auto;">
         <div class="brand-switcher" id="brand-switcher">
           <button class="brand-btn active" onclick="switchBrand(0, this)">Стоматология</button>
-          <button class="brand-btn" onclick="switchBrand(1, this)">Здоровенок</button>
-          <button class="brand-btn" onclick="switchBrand(2, this)">Дино</button>
-          <button class="brand-btn" onclick="switchBrand(3, this)">Косметология</button>
-          <button class="brand-btn" onclick="switchBrand(4, this)">КДЛ</button>
-          <button class="brand-btn" onclick="switchBrand(5, this)">Офтальмология</button>
-          <button class="brand-btn" onclick="switchBrand(6, this)">Клиника</button>
+          <button class="brand-btn" onclick="switchBrand(1, this)">Клиника</button>
+          <button class="brand-btn" onclick="switchBrand(2, this)">Офтальмология</button>
+          <button class="brand-btn" onclick="switchBrand(3, this)">Здоровенок</button>
+          <button class="brand-btn" onclick="switchBrand(4, this)">Дино</button>
+          <button class="brand-btn" onclick="switchBrand(5, this)">Косметология</button>
+          <button class="brand-btn" onclick="switchBrand(6, this)">КДЛ</button>
         </div>
         <div class="loading-badge" id="status-badge">
           <span class="loading-dot"></span>
@@ -934,11 +934,6 @@ function datalabelsConfig(count) {
 
 const BRANDS = [
   { name: 'Стоматология', title: 'dental.sadkomed.ru', sheetId: '18_wK4ym4OvY5YuCtTI7ZmEZhbrxXdGcflIL8sIQxxMo', domain: 'https://dental.sadkomed.ru', directTab: 'stom' },
-  { name: 'Здоровенок', title: 'zdorovenok.ru', sheetId: '1CsSX3R0eA0mHTM8R3VDTyjenU_buDnQwlgZ6xPVkCK0', domain: 'https://zdorovenok.sadkomed.ru', directTab: 'zdorovenok' },
-  { name: 'Дино', title: 'dino.sadkomed.ru', sheetId: '1rWn4O1OG4iQQVZakrHlfEhp0bkC0aqFXu0MjcFTfkQk', domain: 'https://dino.sadkomed.ru', directTab: 'dino' },
-  { name: 'Косметология', title: 'cosmetology.sadkomed.ru', sheetId: '1oBZmlZyeWIoRfuTCZfenWu1V9wr68ynvpYwz8nK6-I0', domain: 'https://cosmetology.sadkomed.ru', directTab: 'kik' },
-  { name: 'КДЛ', title: 'lab.sadkomed.ru', sheetId: '1_tiSoa0L4IYDpmqFQ5uomsgqMuChsDMv9pxQTowUQV0', domain: 'https://lab.sadkomed.ru', directTab: null },
-  { name: 'Офтальмология', title: 'vizhu.sadkomed.ru', sheetId: '1QYetwmeWqpntHSpeu7fs6rKE-H-ojNj-P368Yl0o4BM', domain: 'https://vizhu.sadkomed.ru', directTab: 'oftalm' },
   { name: 'Клиника', title: 'clinic.sadkomed.ru', sheetId: '10VLpClABfSUCZIVoQjGKn7Di1OqYdS8ymtMdkUqgpJM', domain: 'https://clinic.sadkomed.ru', directTab: 'kst',
     centers: [
       { key: 'clinic',    name: 'Клиника',    domain: 'https://clinic.sadkomed.ru' },
@@ -947,6 +942,11 @@ const BRANDS = [
       { key: 'mammology', name: 'Маммология', domain: 'https://mammology.sadkomed.ru' },
       { key: 'neurology', name: 'Неврология', domain: 'https://neurology.sadkomed.ru' },
     ] },
+  { name: 'Офтальмология', title: 'vizhu.sadkomed.ru', sheetId: '1QYetwmeWqpntHSpeu7fs6rKE-H-ojNj-P368Yl0o4BM', domain: 'https://vizhu.sadkomed.ru', directTab: 'oftalm' },
+  { name: 'Здоровенок', title: 'zdorovenok.ru', sheetId: '1CsSX3R0eA0mHTM8R3VDTyjenU_buDnQwlgZ6xPVkCK0', domain: 'https://zdorovenok.sadkomed.ru', directTab: 'zdorovenok' },
+  { name: 'Дино', title: 'dino.sadkomed.ru', sheetId: '1rWn4O1OG4iQQVZakrHlfEhp0bkC0aqFXu0MjcFTfkQk', domain: 'https://dino.sadkomed.ru', directTab: 'dino' },
+  { name: 'Косметология', title: 'cosmetology.sadkomed.ru', sheetId: '1oBZmlZyeWIoRfuTCZfenWu1V9wr68ynvpYwz8nK6-I0', domain: 'https://cosmetology.sadkomed.ru', directTab: 'kik' },
+  { name: 'КДЛ', title: 'lab.sadkomed.ru', sheetId: '1_tiSoa0L4IYDpmqFQ5uomsgqMuChsDMv9pxQTowUQV0', domain: 'https://lab.sadkomed.ru', directTab: null },
 ];
 // Все наши домены (для подсветки своих строк в таблицах конкурентов)
 const OUR_DOMAINS = (() => {
@@ -1588,7 +1588,9 @@ function renderAds() {
     const prevAds = prevRow ? (parseInt(prevRow.ads) || 0) : null;
     const prevTraffic = prevRow ? (parseInt(prevRow.traffic) || 0) : null;
     const prevBudget = prevRow ? parseBudget(prevRow.budget) : null;
-    const budgetDelta = prevBudget !== null && budget ? (() => {
+    // дельту показываем только если за прошлый месяц был реальный бюджет (>0),
+    // иначе «прирост с нуля» равен всему бюджету и вводит в заблуждение
+    const budgetDelta = prevBudget && budget ? (() => {
       const d = budget - prevBudget;
       if (d === 0) return '';
       const cls = d > 0 ? 'query-up' : 'query-down';
