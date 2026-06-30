@@ -541,6 +541,8 @@ tr.row-own td { background: rgba(61,61,200,0.06) !important; }
   line-height: 1.5;
 }
 .has-tip:hover::after { opacity: 1; }
+/* Для правых колонок: раскрывать подсказку влево, чтобы не упиралась в край карточки */
+.has-tip.tip-left::after { left: auto; right: 0; }
 
 /* Back to top */
 .back-to-top {
@@ -580,6 +582,7 @@ tr.row-own td { background: rgba(61,61,200,0.06) !important; }
 }
 .brand-btn:hover { color: var(--text); }
 .brand-btn.active { background: var(--surface); color: var(--accent); font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.center-switcher-row { display: flex; justify-content: flex-end; margin-top: 10px; }
 
 /* Loading dot — done state */
 .loading-dot.done { background: var(--green); animation: none; opacity: 1; }
@@ -619,18 +622,22 @@ tr.row-own td { background: rgba(61,61,200,0.06) !important; }
         <div class="header-title" id="header-title">dental.sadkomed.ru</div>
       </div>
       <div style="display:flex;align-items:center;gap:12px;margin-left:auto;">
-        <div class="brand-switcher">
+        <div class="brand-switcher" id="brand-switcher">
           <button class="brand-btn active" onclick="switchBrand(0, this)">Стоматология</button>
           <button class="brand-btn" onclick="switchBrand(1, this)">Здоровенок</button>
           <button class="brand-btn" onclick="switchBrand(2, this)">Дино</button>
           <button class="brand-btn" onclick="switchBrand(3, this)">Косметология</button>
           <button class="brand-btn" onclick="switchBrand(4, this)">КДЛ</button>
           <button class="brand-btn" onclick="switchBrand(5, this)">Офтальмология</button>
+          <button class="brand-btn" onclick="switchBrand(6, this)">Клиника</button>
         </div>
         <div class="loading-badge" id="status-badge">
           <span class="loading-dot"></span>
           Загружаем данные...
         </div>
+      </div>
+      <div class="center-switcher-row" id="center-switcher-wrap" style="display:none;">
+        <div class="brand-switcher" id="center-switcher"></div>
       </div>
     </div>
   </div>
@@ -683,7 +690,7 @@ tr.row-own td { background: rgba(61,61,200,0.06) !important; }
             <th style="width:70px" class="sortable-th" onclick="sortOrgBy('top5')">Топ 5<span class="sort-arrow" id="org-arrow-top5">▲</span></th>
             <th style="width:70px" class="sortable-th" onclick="sortOrgBy('top10')">Топ 10<span class="sort-arrow active" id="org-arrow-top10">▼</span></th>
             <th style="width:70px" class="sortable-th" onclick="sortOrgBy('top50')">Топ 50<span class="sort-arrow" id="org-arrow-top50">▲</span></th>
-            <th style="width:90px" class="sortable-th has-tip" onclick="sortOrgBy('traffic')" data-tip="Ориентировочный органический трафик в сутки">Трафик<span class="sort-arrow" id="org-arrow-traffic">▲</span></th>
+            <th style="width:90px" class="sortable-th has-tip tip-left" onclick="sortOrgBy('traffic')" data-tip="Ориентировочный органический трафик в сутки">Трафик<span class="sort-arrow" id="org-arrow-traffic">▲</span></th>
             <th style="width:80px" class="sortable-th" onclick="sortOrgBy('pages')">Страниц<span class="sort-arrow" id="org-arrow-pages">▲</span></th>
           </tr>
         </thead>
@@ -735,8 +742,8 @@ tr.row-own td { background: rgba(61,61,200,0.06) !important; }
             <th>Домен</th>
             <th style="width:100px" class="has-tip" data-tip="Количество объявлений найденного сайта конкурента в контекстной рекламе">Объявлений</th>
             <th style="width:100px" class="has-tip" data-tip="Количество запросов, по которым показываются объявления найденного сайта">Запросов</th>
-            <th style="width:80px" class="has-tip" data-tip="Ориентировочный объём ежесуточного трафика из контекста без учёта таргетинга. Рассчитывается как произведение точной частотности на прогноз CTR, делённое на 30 дней">Трафик</th>
-            <th style="width:180px" class="has-tip" data-tip="Ориентировочная сумма, которую сайт тратит в месяц на рекламу в Яндекс.Директ. Данные собираются из инструмента «Прогноз бюджета» на основании запросов, по которым сайт показывался в рекламной выдаче">Бюджет</th>
+            <th style="width:80px" class="has-tip tip-left" data-tip="Ориентировочный объём ежесуточного трафика из контекста без учёта таргетинга. Рассчитывается как произведение точной частотности на прогноз CTR, делённое на 30 дней">Трафик</th>
+            <th style="width:180px" class="has-tip tip-left" data-tip="Ориентировочная сумма, которую сайт тратит в месяц на рекламу в Яндекс.Директ. Данные собираются из инструмента «Прогноз бюджета» на основании запросов, по которым сайт показывался в рекламной выдаче">Бюджет</th>
           </tr>
         </thead>
         <tbody id="ads-body"></tbody>
@@ -932,9 +939,29 @@ const BRANDS = [
   { name: 'Косметология', title: 'cosmetology.sadkomed.ru', sheetId: '1oBZmlZyeWIoRfuTCZfenWu1V9wr68ynvpYwz8nK6-I0', domain: 'https://cosmetology.sadkomed.ru', directTab: 'kik' },
   { name: 'КДЛ', title: 'lab.sadkomed.ru', sheetId: '1_tiSoa0L4IYDpmqFQ5uomsgqMuChsDMv9pxQTowUQV0', domain: 'https://lab.sadkomed.ru', directTab: null },
   { name: 'Офтальмология', title: 'vizhu.sadkomed.ru', sheetId: '1QYetwmeWqpntHSpeu7fs6rKE-H-ojNj-P368Yl0o4BM', domain: 'https://vizhu.sadkomed.ru', directTab: 'oftalm' },
+  { name: 'Клиника', title: 'clinic.sadkomed.ru', sheetId: '10VLpClABfSUCZIVoQjGKn7Di1OqYdS8ymtMdkUqgpJM', domain: 'https://clinic.sadkomed.ru', directTab: 'kst',
+    centers: [
+      { key: 'clinic',    name: 'Клиника',    domain: 'https://clinic.sadkomed.ru' },
+      { key: 'women',     name: 'Женский',    domain: 'https://women.sadkomed.ru' },
+      { key: 'men',       name: 'Мужской',    domain: 'https://men.sadkomed.ru' },
+      { key: 'mammology', name: 'Маммология', domain: 'https://mammology.sadkomed.ru' },
+      { key: 'neurology', name: 'Неврология', domain: 'https://neurology.sadkomed.ru' },
+    ] },
 ];
+// Все наши домены (для подсветки своих строк в таблицах конкурентов)
+const OUR_DOMAINS = (() => {
+  const s = new Set();
+  const add = d => { if (d) s.add(d.replace(/^https?:\/\//, '').toLowerCase()); };
+  BRANDS.forEach(b => { add(b.domain); add(b.title); (b.centers || []).forEach(c => add(c.domain)); });
+  return s;
+})();
+function isOwnDomain(domain) {
+  return OUR_DOMAINS.has((domain || '').replace(/^https?:\/\//, '').toLowerCase());
+}
+
 const DIRECT_SHEET_ID = '1pKM-243Fol0oPcbcyD6fTQiUBEuXQVKzWGrjMMjOMVE';
 let activeBrand = 0;
+let activeCenter = 'all'; // для брендов с центрами: 'all' (агрегат) или key центра
 const SHEETS = { positions: 'positions', queries: 'queries', ads: 'ads' };
 
 let allData = { positions: [], queries: [], ads: [], metrika_traffic: [], metrika_sources: [], metrika_adv: [], metrika_pages: [], pages_map: [], domains_map: [], direct_weekly: [] };
@@ -967,13 +994,74 @@ function sheetUrl(name) {
   return `https://docs.google.com/spreadsheets/d/${BRANDS[activeBrand].sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(name)}`;
 }
 
+// ── Центры (мультисчётчиковые бренды, напр. Клиника) ─────────
+// Активный объект центра или null (нет центров / режим «Все»)
+function activeCenterObj() {
+  const b = BRANDS[activeBrand];
+  if (!b.centers || activeCenter === 'all') return null;
+  return b.centers.find(c => c.key === activeCenter) || null;
+}
+// true — выбран бренд с центрами и активен агрегат «Все»
+function isAggregateView() {
+  return !!BRANDS[activeBrand].centers && activeCenter === 'all';
+}
+// Домен для матчинга «своей» строки (без протокола)
+function currentDomain() {
+  const c = activeCenterObj();
+  return ((c ? c.domain : BRANDS[activeBrand].domain) || '').replace(/^https?:\/\//, '');
+}
+
+function renderCenterTabs() {
+  const wrap = document.getElementById('center-switcher-wrap');
+  const cont = document.getElementById('center-switcher');
+  const b = BRANDS[activeBrand];
+  if (!b.centers) { wrap.style.display = 'none'; cont.innerHTML = ''; return; }
+  wrap.style.display = 'flex';
+  const tabs = [{ key: 'all', name: 'Все' }, ...b.centers];
+  cont.innerHTML = tabs.map(t =>
+    `<button class="brand-btn${activeCenter === t.key ? ' active' : ''}" onclick="switchCenter('${t.key}')">${t.name}</button>`
+  ).join('');
+}
+
+function updateHeaderTitle() {
+  const b = BRANDS[activeBrand];
+  const c = activeCenterObj();
+  let title;
+  if (c) title = c.domain.replace(/^https?:\/\//, '');
+  else if (b.centers) title = b.title + ' — все центры';
+  else title = b.title;
+  document.getElementById('header-title').textContent = title;
+}
+
+async function switchCenter(key) {
+  if (key === activeCenter) return;
+  const savedMonthLabel = activeMonth ? formatMonth(activeMonth) : null;
+  activeCenter = key;
+  renderCenterTabs();
+  updateHeaderTitle();
+  activeMonth = null;
+  posFilter = 0;
+  showAll = false;
+  adsShowAll = false;
+  orgShowAll = false;
+  document.querySelectorAll('.pos-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
+  await init();
+  if (savedMonthLabel) {
+    const months = getAllMonths();
+    const found = months.find(m => formatMonth(m) === savedMonthLabel);
+    if (found) { activeMonth = found; renderMonthTabs(months); renderAll(); }
+  }
+}
+
 async function switchBrand(idx, btn) {
   if (idx === activeBrand) return;
   const savedMonthLabel = activeMonth ? formatMonth(activeMonth) : null;
   activeBrand = idx;
-  document.querySelectorAll('.brand-btn').forEach(b => b.classList.remove('active'));
+  activeCenter = 'all';
+  document.querySelectorAll('#brand-switcher .brand-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  document.getElementById('header-title').textContent = BRANDS[idx].title;
+  renderCenterTabs();
+  updateHeaderTitle();
   activeMonth = null;
   posFilter = 0;
   showAll = false;
@@ -1193,9 +1281,12 @@ function sortOrgBy(col) {
 }
 
 function renderOrgCompetitors() {
-  const brandDomain = BRANDS[activeBrand].title;
-  const allRows = rowsForMonth(allData.positions, activeMonth).filter(r => r.domain);
   const section = document.getElementById('section-org-competitors');
+  // Конкуренты общие для клиники: внутри отдельного центра не показываем,
+  // только в режиме «Все» (там «наша» строка и конкуренты сведены по всем центрам)
+  if (activeCenterObj()) { section.style.display = 'none'; return; }
+  const brandDomain = isAggregateView() ? currentDomain() : BRANDS[activeBrand].title;
+  const allRows = rowsForMonth(allData.positions, activeMonth).filter(r => r.domain);
   const tbody = document.getElementById('org-competitors-body');
   const countEl = document.getElementById('org-competitors-count');
   if (!allRows.length) { section.style.display = 'none'; return; }
@@ -1258,7 +1349,7 @@ function domainName(domain) {
 }
 
 function brandRow(month) {
-  const domain = (BRANDS[activeBrand].domain || '').replace(/^https?:\/\//, '');
+  const domain = currentDomain();
   const rows = rowsForMonth(allData.positions, month);
   return rows.find(r => r.domain === domain) || null;
 }
@@ -1466,6 +1557,8 @@ function adsDelta(cur, prev) {
 
 function renderAds() {
   const section = document.getElementById('section-ads');
+  // Реклама конкурентов общая для клиники: внутри центра не показываем, только в «Все»
+  if (activeCenterObj()) { section.style.display = 'none'; return; }
   if (!allData.ads.length) { section.style.display = 'none'; return; }
   section.style.display = '';
 
@@ -1503,7 +1596,8 @@ function renderAds() {
       return ` <span class="query-change ${cls}">${arrow}${Math.abs(d).toLocaleString('ru-RU')} ₽</span>`;
     })() : '';
 
-    return `<tr class="${!budget ? 'ads-row-empty' : ''}">
+    const isOwn = isOwnDomain(domain);
+    return `<tr class="${isOwn ? 'row-own ' : ''}${!budget ? 'ads-row-empty' : ''}">
       <td>${domain ? `<a href="https://${domain}" target="_blank" class="page-title-link">${domainName(domain)}</a>` : '—'}</td>
       <td>${adsVal || '—'}${prevAds !== null ? adsDelta(adsVal, prevAds) : ''}</td>
       <td>${r.queries || '—'}</td>
@@ -1929,7 +2023,8 @@ function renderMetrikaPages() {
   const pageMap = {};
   (allData.pages_map || []).forEach(r => { if (r.path) pageMap[r.path.trim()] = r.title; });
 
-  const domain = BRANDS[activeBrand].domain || '';
+  const _c = activeCenterObj();
+  const domain = (_c ? _c.domain : BRANDS[activeBrand].domain) || '';
   rows.sort((a, b) => (parseFloat(b.visits)||0) - (parseFloat(a.visits)||0));
 
   document.getElementById('metrika-pages-count').textContent = `${rows.length} страниц`;
@@ -2148,10 +2243,14 @@ function renderDirectStats() {
   directCampaigns.forEach(c => { if (!campaigns.includes(c)) directCampaigns.delete(c); });
   if (directCampaigns.size === 0 && campaigns.length) directCampaigns.add(campaigns[0]);
 
-  // Табы кампаний (мультивыбор)
-  document.getElementById('direct-campaign-tabs').innerHTML = campaigns.map(c =>
+  // Табы кампаний (мультивыбор) + сброс, если выбрано больше одной
+  const tabsHtml = campaigns.map(c =>
     `<button class="direct-campaign-tab${directCampaigns.has(c) ? ' active' : ''}" onclick="toggleDirectCampaign(${JSON.stringify(c).replace(/"/g,'&quot;')})">${c}</button>`
   ).join('');
+  const resetHtml = directCampaigns.size > 1
+    ? `<button class="page-cat-reset" onclick="resetDirectCampaigns()" title="Сбросить выбор кампаний">↺</button>`
+    : '';
+  document.getElementById('direct-campaign-tabs').innerHTML = tabsHtml + resetHtml;
 
   // Конечный месяц: активный (если в нём есть данные Директа), иначе последний с данными
   const allM = getAllMonths();
@@ -2325,22 +2424,155 @@ function toggleDirectCampaign(campaign) {
   renderDirectStats();
 }
 
+// Сброс выбора кампаний к одной (по умолчанию — первая)
+function resetDirectCampaigns() {
+  directCampaigns.clear();
+  renderDirectStats(); // при пустом наборе renderDirectStats сам добавит первую кампанию
+}
+
+// Все листы одного бренда (без центров)
+const SHEET_BASES = ['positions', 'queries', 'ads', 'metrika_traffic', 'metrika_sources', 'metrika_adv', 'metrika_pages', 'pages_map', 'domains_map'];
+
+// Загружает один набор листов; suffix = '' или '_<центр>'
+async function loadSheetSet(suffix) {
+  const arr = await Promise.all(SHEET_BASES.map(n => fetchSheet(n + suffix).catch(() => [])));
+  const set = {};
+  SHEET_BASES.forEach((n, i) => { set[n] = arr[i]; });
+  return set;
+}
+
+// Листы бренда с центрами, которые лежат по центрам (суффикс _<центр>).
+// positions, ads, pages_map, domains_map — общие (один лист на всю клинику).
+const CENTER_BASES = ['queries', 'metrika_traffic', 'metrika_sources', 'metrika_adv', 'metrika_pages'];
+
+async function loadCenterBases(suffix) {
+  const arr = await Promise.all(CENTER_BASES.map(n => fetchSheet(n + suffix).catch(() => [])));
+  const set = {};
+  CENTER_BASES.forEach((n, i) => { set[n] = arr[i]; });
+  return set;
+}
+
+// Загружает данные активного бренда/центра с учётом режима «Все»
+async function loadActiveData() {
+  const b = BRANDS[activeBrand];
+  const direct_weekly = normalizeDirectRows(await fetchDirectSheet().catch(() => []));
+  if (!b.centers) {
+    return { ...await loadSheetSet(''), direct_weekly };
+  }
+
+  // Общие листы клиники (keys.so + справочники)
+  const [positions, ads, pages_map, domains_map] = await Promise.all([
+    fetchSheet('positions').catch(() => []),
+    fetchSheet('ads').catch(() => []),
+    fetchSheet('pages_map').catch(() => []),
+    fetchSheet('domains_map').catch(() => []),
+  ]);
+
+  if (activeCenter !== 'all') {
+    const center = await loadCenterBases('_' + activeCenter);
+    return { positions, ads, pages_map, domains_map, ...center, direct_weekly };
+  }
+
+  const sets = await Promise.all(b.centers.map(c => loadCenterBases('_' + c.key)));
+  return { ...aggregateCenters(positions, ads, sets, b), pages_map, domains_map, direct_weekly };
+}
+
+// Месяц-ключ строки Метрики (даты ISO)
+function metricMonthKey(r) { const d = new Date(r.date); return isNaN(d) ? r.date : formatMonth(d); }
+
+// Универсальная агрегация: группировка по месяцу + dimFields,
+// sumFields суммируются, wavgFields — средневзвешенные по визитам
+function aggSum(arrays, dimFields, sumFields, wavgFields) {
+  const map = new Map();
+  arrays.forEach(rows => rows.forEach(r => {
+    const key = metricMonthKey(r) + '|' + dimFields.map(f => r[f] || '').join('|');
+    let acc = map.get(key);
+    if (!acc) {
+      acc = { date: r.date, _w: 0 };
+      dimFields.forEach(f => acc[f] = r[f]);
+      sumFields.forEach(f => acc[f] = 0);
+      wavgFields.forEach(f => acc['_wsum_' + f] = 0);
+      map.set(key, acc);
+    }
+    const w = parseFloat(r.visits) || 0;
+    sumFields.forEach(f => acc[f] += parseFloat(r[f]) || 0);
+    wavgFields.forEach(f => acc['_wsum_' + f] += (parseFloat(r[f]) || 0) * w);
+    acc._w += w;
+  }));
+  return [...map.values()].map(acc => {
+    wavgFields.forEach(f => {
+      acc[f] = acc._w > 0 ? Math.round(acc['_wsum_' + f] / acc._w * 10) / 10 : 0;
+      delete acc['_wsum_' + f];
+    });
+    delete acc._w;
+    return acc;
+  });
+}
+
+// Сводит данные клиники в один набор для режима «Все».
+// positionsShared / adsShared — общие листы keys.so; sets — по центрам (queries, metrika_*, pages_map)
+function aggregateCenters(positionsShared, adsShared, sets, brand) {
+  const aggDomain = (brand.domain || '').replace(/^https?:\/\//, '');
+  const centerDomains = new Set(brand.centers.map(c => c.domain.replace(/^https?:\/\//, '')));
+  const posMonth = r => { const d = parseDate(r.date); return d && !isNaN(d) ? formatMonth(d) : null; };
+  const POS_NUM = ['top1', 'top3', 'top5', 'top10', 'top50', 'traffic', 'pages'];
+
+  // Позиции из общего листа:
+  //  • «наша» строка = сумма строк доменов центров (по одной на домен в месяц — дедуп дублей)
+  //  • конкуренты = сумма по каждому домену across все строки месяца
+  const ownMap = new Map();  // monthKey -> Map(centerDomain -> row)  (один ряд на домен центра)
+  const compMap = new Map(); // monthKey -> Map(domain -> aggRow)
+  const monthDate = new Map(); // monthKey -> date строки (для метки)
+  positionsShared.forEach(r => {
+    const mk = posMonth(r); if (!mk) return;
+    if (!monthDate.has(mk)) monthDate.set(mk, r.date);
+    if (centerDomains.has(r.domain)) {
+      let dm = ownMap.get(mk); if (!dm) { dm = new Map(); ownMap.set(mk, dm); }
+      dm.set(r.domain, r); // последний выигрывает — дубль-сиблинг из чужого экспорта не плюсуется
+    } else if (r.domain) {
+      let cm = compMap.get(mk); if (!cm) { cm = new Map(); compMap.set(mk, cm); }
+      let cr = cm.get(r.domain);
+      if (!cr) { cr = { date: r.date, domain: r.domain }; POS_NUM.forEach(k => cr[k] = 0); cm.set(r.domain, cr); }
+      POS_NUM.forEach(k => { cr[k] += parseInt(r[k]) || 0; });
+    }
+  });
+  const positions = [];
+  ownMap.forEach((dm, mk) => {
+    const own = { date: monthDate.get(mk), domain: aggDomain };
+    POS_NUM.forEach(k => own[k] = 0);
+    dm.forEach(r => POS_NUM.forEach(k => { own[k] += parseInt(r[k]) || 0; }));
+    positions.push(own);
+  });
+  compMap.forEach(cm => cm.forEach(cr => positions.push(cr)));
+
+  // Реклама конкурентов: сумма по доменам со всего общего листа
+  const adsMap = new Map(); // monthKey|domain -> row
+  adsShared.forEach(r => {
+    const mk = posMonth(r); if (!mk || !r.domain) return;
+    const key = mk + '|' + r.domain;
+    let ar = adsMap.get(key);
+    if (!ar) { ar = { date: r.date, domain: r.domain, ads: 0, queries: 0, traffic: 0, _budget: 0 }; adsMap.set(key, ar); }
+    ar.ads += parseInt(r.ads) || 0;
+    ar.queries += parseInt(r.queries) || 0;
+    ar.traffic += parseInt(r.traffic) || 0;
+    ar._budget += parseBudget(r.budget);
+  });
+  const ads = [...adsMap.values()].map(ar => { ar.budget = ar._budget ? String(ar._budget) : ''; delete ar._budget; return ar; });
+
+  return {
+    positions,
+    ads,
+    queries: sets.flatMap(s => s.queries),                                   // объединяем
+    metrika_traffic: aggSum(sets.map(s => s.metrika_traffic), [], ['visits', 'pageviews', 'users'], ['bounceRate', 'avgDuration']),
+    metrika_sources: aggSum(sets.map(s => s.metrika_sources), ['source', 'parent'], ['visits'], []),
+    metrika_adv: aggSum(sets.map(s => s.metrika_adv), ['advSystem'], ['visits', 'users'], ['bounceRate', 'avgDuration']),
+    metrika_pages: aggSum(sets.map(s => s.metrika_pages), ['page'], ['visits'], ['bounceRate', 'avgDuration']),
+  };
+}
+
 async function init() {
   try {
-    const [positions, queries, ads, metrika_traffic, metrika_sources, metrika_adv, metrika_pages, pages_map, domains_map, direct_weekly] = await Promise.all([
-      fetchSheet('positions').catch(() => []),
-      fetchSheet('queries').catch(() => []),
-      fetchSheet('ads').catch(() => []),
-      fetchSheet('metrika_traffic').catch(() => []),
-      fetchSheet('metrika_sources').catch(() => []),
-      fetchSheet('metrika_adv').catch(() => []),
-      fetchSheet('metrika_pages').catch(() => []),
-      fetchSheet('pages_map').catch(() => []),
-      fetchSheet('domains_map').catch(() => []),
-      fetchDirectSheet().catch(() => []),
-    ]);
-
-    allData = { positions, queries, ads, metrika_traffic, metrika_sources, metrika_adv, metrika_pages, pages_map, domains_map, direct_weekly: normalizeDirectRows(direct_weekly) };
+    allData = await loadActiveData();
 
     const months = getMonths(allData.positions);
     if (!months.length) {
@@ -2357,6 +2589,7 @@ async function init() {
   }
 }
 
+renderCenterTabs();
 init();
 </script>
 <button class="back-to-top" id="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Наверх">↑</button>

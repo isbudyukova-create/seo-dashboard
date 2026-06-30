@@ -30,6 +30,18 @@ var METRIKA_BRANDS = [
     name: 'Офтальмология',
     sheetId: '1QYetwmeWqpntHSpeu7fs6rKE-H-ojNj-P368Yl0o4BM',
     counterId: '102016053'
+  },
+  {
+    name: 'Клиника',
+    sheetId: '10VLpClABfSUCZIVoQjGKn7Di1OqYdS8ymtMdkUqgpJM',
+    // Несколько счётчиков: каждый центр пишется в листы с суффиксом _<suffix>
+    centers: [
+      { suffix: 'clinic',    counterId: '100047448' },
+      { suffix: 'women',     counterId: '100047613' },
+      { suffix: 'men',       counterId: '100047528' },
+      { suffix: 'mammology', counterId: '100047497' },
+      { suffix: 'neurology', counterId: '100047581' }
+    ]
   }
 ];
 
@@ -51,34 +63,65 @@ function metrikaDinoFull()         { updateMetrikaBrand(METRIKA_BRANDS[4], true)
 function metrikaDinoNew()          { updateMetrikaBrand(METRIKA_BRANDS[4], false); }
 function metrikaOftalmFull()       { updateMetrikaBrand(METRIKA_BRANDS[5], true); }
 function metrikaOftalmNew()        { updateMetrikaBrand(METRIKA_BRANDS[5], false); }
+function metrikaKlinikaFull()       { updateMetrikaBrand(METRIKA_BRANDS[6], true); }   // ВНИМАНИЕ: все 5 центров за раз могут не успеть (лимит времени) — для первой заливки см. функции по центрам ниже
+function metrikaKlinikaNew()        { updateMetrikaBrand(METRIKA_BRANDS[6], false); }
 
-// --- Только источники (metrika_sources) ---
-function metrikaStomatologySourcesFull()  { updateSourcesOnly(METRIKA_BRANDS[0], true); }
-function metrikaStomatologySourcesNew()   { updateSourcesOnly(METRIKA_BRANDS[0], false); }
-function metrikaZdorovenokSourcesFull()   { updateSourcesOnly(METRIKA_BRANDS[1], true); }
-function metrikaZdorovenokSourcesNew()    { updateSourcesOnly(METRIKA_BRANDS[1], false); }
-function metrikaKosmetologiyaSourcesFull(){ updateSourcesOnly(METRIKA_BRANDS[2], true); }
-function metrikaKosmetologiyaSourcesNew() { updateSourcesOnly(METRIKA_BRANDS[2], false); }
-function metrikaKdlSourcesFull()          { updateSourcesOnly(METRIKA_BRANDS[3], true); }
-function metrikaKdlSourcesNew()           { updateSourcesOnly(METRIKA_BRANDS[3], false); }
-function metrikaDinoSourcesFull()         { updateSourcesOnly(METRIKA_BRANDS[4], true); }
-function metrikaDinoSourcesNew()          { updateSourcesOnly(METRIKA_BRANDS[4], false); }
-function metrikaOftalmSourcesFull()       { updateSourcesOnly(METRIKA_BRANDS[5], true); }
-function metrikaOftalmSourcesNew()        { updateSourcesOnly(METRIKA_BRANDS[5], false); }
+// --- Клиника по одному центру (первичная заливка, чтобы уложиться в лимит времени) ---
+function metrikaKlinikaClinicFull()    { updateMetrikaCenter(METRIKA_BRANDS[6], 'clinic', true); }
+function metrikaKlinikaClinicNew()     { updateMetrikaCenter(METRIKA_BRANDS[6], 'clinic', false); }
+function metrikaKlinikaWomenFull()     { updateMetrikaCenter(METRIKA_BRANDS[6], 'women', true); }
+function metrikaKlinikaWomenNew()      { updateMetrikaCenter(METRIKA_BRANDS[6], 'women', false); }
+function metrikaKlinikaMenFull()       { updateMetrikaCenter(METRIKA_BRANDS[6], 'men', true); }
+function metrikaKlinikaMenNew()        { updateMetrikaCenter(METRIKA_BRANDS[6], 'men', false); }
+function metrikaKlinikaMammologyFull() { updateMetrikaCenter(METRIKA_BRANDS[6], 'mammology', true); }
+function metrikaKlinikaMammologyNew()  { updateMetrikaCenter(METRIKA_BRANDS[6], 'mammology', false); }
+function metrikaKlinikaNeurologyFull() { updateMetrikaCenter(METRIKA_BRANDS[6], 'neurology', true); }
+function metrikaKlinikaNeurologyNew()  { updateMetrikaCenter(METRIKA_BRANDS[6], 'neurology', false); }
 
-// Перезаписать metrika_sources у всех брендов (для миграции)
-function runAllSourcesFull() {
-  for (var i = 0; i < METRIKA_BRANDS.length; i++) {
-    updateSourcesOnly(METRIKA_BRANDS[i], true);
-    if (i < METRIKA_BRANDS.length - 1) Utilities.sleep(3000);
-  }
-}
+// Бренд, чьи запросы выполняются сейчас (для привязки ошибок в отчёте)
+var CURRENT_BRAND = '';
+// Ошибки API, собранные за текущий запуск
+var RUN_ERRORS = [];
 
 function runMonthlyUpdate() {
+  RUN_ERRORS = [];
+  var report = [];
   for (var i = 0; i < METRIKA_BRANDS.length; i++) {
-    updateMetrikaBrand(METRIKA_BRANDS[i], false);
+    report.push(updateMetrikaBrand(METRIKA_BRANDS[i], false));
     if (i < METRIKA_BRANDS.length - 1) Utilities.sleep(3000);
   }
+  sendMonthlyReport(report);
+}
+
+// Письмо с итогом ежемесячного обновления
+function sendMonthlyReport(report) {
+  var email = Session.getActiveUser().getEmail() || Session.getEffectiveUser().getEmail();
+  var hasError = false;
+  var lines = [];
+  for (var i = 0; i < report.length; i++) {
+    var s = report[i];
+    var errs = RUN_ERRORS.filter(function(e) { return e.brand === s.name; });
+    if (errs.length) hasError = true;
+    lines.push(s.name + ': '
+      + 'traffic ' + fmtCount(s.traffic) + ', '
+      + 'sources ' + fmtCount(s.sources) + ', '
+      + 'adv ' + fmtCount(s.adv) + ', '
+      + 'pages ' + fmtCount(s.pages)
+      + '  ' + (errs.length ? '⚠️ проверить' : '✅'));
+    for (var e = 0; e < errs.length; e++) lines.push('      ! ' + errs[e].detail);
+  }
+  var head = hasError
+    ? '⚠️ Были ошибки — проверьте журнал и таблицы'
+    : '✅ Все бренды обновлены без ошибок';
+  var body = head + '\n\n' + lines.join('\n')
+    + '\n\nЖурнал выполнений: https://script.google.com/home/executions';
+  MailApp.sendEmail(email, (hasError ? '⚠️' : '✅') + ' Метрика: ежемесячное обновление', body);
+  Logger.log('Отчёт отправлен на ' + email);
+}
+
+// null/undefined → «—» (нет новых данных), число → «+N»
+function fmtCount(n) {
+  return (n === null || n === undefined) ? '—' : '+' + n;
 }
 
 function createMonthlyTrigger() {
@@ -88,27 +131,55 @@ function createMonthlyTrigger() {
   Logger.log('Триггер создан: 2-е число каждого месяца в 9:00');
 }
 
+// Возвращает список «единиц обработки» бренда: для обычного бренда — один счётчик
+// без суффикса, для бренда с центрами — по счётчику на каждый центр с суффиксом _<suffix>
+function brandUnits(brand) {
+  if (brand.centers) {
+    return brand.centers.map(function(c) {
+      return { counterId: c.counterId, suffix: '_' + c.suffix };
+    });
+  }
+  return [{ counterId: brand.counterId, suffix: '' }];
+}
+
 function updateMetrikaBrand(brand, overwrite) {
   Logger.log('=== ' + brand.name + (overwrite ? ' [ПОЛНАЯ ПЕРЕЗАПИСЬ]' : ' [ТОЛЬКО НОВОЕ]') + ' ===');
+  CURRENT_BRAND = brand.name;
   var ss = SpreadsheetApp.openById(brand.sheetId);
-  updateMain(brand, ss, overwrite);
-  Utilities.sleep(2000);
-  updatePages(brand, ss, overwrite);
+  var stats = { name: brand.name, traffic: null, sources: null, adv: null, pages: null };
+  var units = brandUnits(brand);
+  for (var u = 0; u < units.length; u++) {
+    if (units[u].suffix) Logger.log('--- центр ' + units[u].suffix + ' (счётчик ' + units[u].counterId + ') ---');
+    updateMain(units[u].counterId, units[u].suffix, ss, overwrite, stats);
+    Utilities.sleep(2000);
+    updatePages(units[u].counterId, units[u].suffix, ss, overwrite, stats);
+    if (u < units.length - 1) Utilities.sleep(2000);
+  }
   Logger.log('=== ' + brand.name + ' готово ===');
+  return stats;
 }
 
-function updateSourcesOnly(brand, overwrite) {
-  Logger.log('=== ' + brand.name + ' [ТОЛЬКО SOURCES' + (overwrite ? ', ПЕРЕЗАПИСЬ' : ', НОВОЕ') + '] ===');
+// Обновить ОДИН центр бренда с центрами — чтобы уложиться в лимит времени Apps Script
+function updateMetrikaCenter(brand, centerSuffix, overwrite) {
+  Logger.log('=== ' + brand.name + ' / центр ' + centerSuffix + (overwrite ? ' [ПЕРЕЗАПИСЬ]' : ' [НОВОЕ]') + ' ===');
+  CURRENT_BRAND = brand.name;
   var ss = SpreadsheetApp.openById(brand.sheetId);
-  if (overwrite) clearSheet(ss, 'metrika_sources');
-  var existingSources = overwrite ? new Set() : getExistingDates(ss, 'metrika_sources');
-  var sourcesRange = overwrite ? getFullDateRange() : getSmartDateRange(existingSources);
-  if (!sourcesRange) { Logger.log('metrika_sources: нет новых данных'); return; }
-  updateSourcesBlock(brand.counterId, ss, sourcesRange);
-  Logger.log('=== ' + brand.name + ' sources готово ===');
+  var center = null;
+  for (var i = 0; i < (brand.centers || []).length; i++) {
+    if (brand.centers[i].suffix === centerSuffix) { center = brand.centers[i]; break; }
+  }
+  if (!center) { Logger.log('Центр не найден: ' + centerSuffix); return; }
+  var stats = { name: brand.name + '/' + centerSuffix, traffic: null, sources: null, adv: null, pages: null };
+  var suffix = '_' + center.suffix;
+  updateMain(center.counterId, suffix, ss, overwrite, stats);
+  Utilities.sleep(2000);
+  updatePages(center.counterId, suffix, ss, overwrite, stats);
+  Logger.log('=== ' + brand.name + ' / ' + centerSuffix + ' готово ===');
+  return stats;
 }
 
-function updateSourcesBlock(counterId, ss, range) {
+function updateSourcesBlock(counterId, ss, range, suffix) {
+  suffix = suffix || '';
   var sources = fetchBytime(counterId, 'ym:s:visits', 'ym:s:trafficSource', range[0], range[1], 'lastsign');
   var sourceRows = [];
   if (sources.time_intervals && sources.data) {
@@ -121,7 +192,7 @@ function updateSourcesBlock(counterId, ss, range) {
       }
     }
   }
-  appendToSheet(ss, 'metrika_sources', ['date','source','visits','parent'], sourceRows);
+  var total = appendToSheet(ss, 'metrika_sources' + suffix, ['date','source','visits','parent'], sourceRows);
 
   var SUB_SOURCES = [
     { dim: 'ym:s:sourceEngine', filter: "ym:s:trafficSource=='social'", parent: 'Переходы из социальных сетей' },
@@ -144,8 +215,9 @@ function updateSourcesBlock(counterId, ss, range) {
         }
       }
     }
-    if (subRows.length) appendToSheet(ss, 'metrika_sources', ['date','source','visits','parent'], subRows);
+    if (subRows.length) total += appendToSheet(ss, 'metrika_sources' + suffix, ['date','source','visits','parent'], subRows);
   }
+  return total;
 }
 
 // Полный диапазон — для режима overwrite
@@ -178,13 +250,14 @@ function getSmartDateRange(existingDates) {
   return [start, end];
 }
 
-function updateMain(brand, ss, overwrite) {
+function updateMain(counterId, suffix, ss, overwrite, stats) {
+  suffix = suffix || '';
   // --- metrika_traffic ---
-  if (overwrite) clearSheet(ss, 'metrika_traffic');
-  var existingTraffic = overwrite ? new Set() : getExistingDates(ss, 'metrika_traffic');
+  if (overwrite) clearSheet(ss, 'metrika_traffic' + suffix);
+  var existingTraffic = overwrite ? new Set() : getExistingDates(ss, 'metrika_traffic' + suffix);
   var trafficRange = overwrite ? getFullDateRange() : getSmartDateRange(existingTraffic);
   if (trafficRange) {
-    var traffic = fetchBytime(brand.counterId,
+    var traffic = fetchBytime(counterId,
       'ym:s:visits,ym:s:pageviews,ym:s:users,ym:s:bounceRate,ym:s:avgVisitDurationSeconds',
       null, trafficRange[0], trafficRange[1]);
     var trafficRows = [];
@@ -195,27 +268,29 @@ function updateMain(brand, ss, overwrite) {
         trafficRows.push([dateLabel, m[0][t], m[1][t], m[2][t], Math.round(m[3][t]*10)/10, Math.round(m[4][t])]);
       }
     }
-    appendToSheet(ss, 'metrika_traffic', ['date','visits','pageviews','users','bounceRate','avgDuration'], trafficRows);
+    var trafficCount = appendToSheet(ss, 'metrika_traffic' + suffix, ['date','visits','pageviews','users','bounceRate','avgDuration'], trafficRows);
+    if (stats) stats.traffic = (stats.traffic || 0) + trafficCount;
   } else {
-    Logger.log('metrika_traffic: нет новых данных');
+    Logger.log('metrika_traffic' + suffix + ': нет новых данных');
   }
 
   // --- metrika_sources ---
-  if (overwrite) clearSheet(ss, 'metrika_sources');
-  var existingSources = overwrite ? new Set() : getExistingDates(ss, 'metrika_sources');
+  if (overwrite) clearSheet(ss, 'metrika_sources' + suffix);
+  var existingSources = overwrite ? new Set() : getExistingDates(ss, 'metrika_sources' + suffix);
   var sourcesRange = overwrite ? getFullDateRange() : getSmartDateRange(existingSources);
   if (sourcesRange) {
-    updateSourcesBlock(brand.counterId, ss, sourcesRange);
+    var srcCount = updateSourcesBlock(counterId, ss, sourcesRange, suffix);
+    if (stats) stats.sources = (stats.sources || 0) + srcCount;
   } else {
-    Logger.log('metrika_sources: нет новых данных');
+    Logger.log('metrika_sources' + suffix + ': нет новых данных');
   }
 
   // --- metrika_adv ---
-  if (overwrite) clearSheet(ss, 'metrika_adv');
-  var existingAdv = overwrite ? new Set() : getExistingDates(ss, 'metrika_adv');
+  if (overwrite) clearSheet(ss, 'metrika_adv' + suffix);
+  var existingAdv = overwrite ? new Set() : getExistingDates(ss, 'metrika_adv' + suffix);
   var advRange = overwrite ? getFullDateRange() : getSmartDateRange(existingAdv);
   if (advRange) {
-    var adv = fetchBytime(brand.counterId,
+    var adv = fetchBytime(counterId,
       'ym:s:visits,ym:s:users,ym:s:bounceRate,ym:s:avgVisitDurationSeconds',
       'ym:s:LastSignAdvEngine', advRange[0], advRange[1]);
     var advRows = [];
@@ -229,23 +304,25 @@ function updateMain(brand, ss, overwrite) {
         }
       }
     }
-    appendToSheet(ss, 'metrika_adv', ['date','advSystem','visits','users','bounceRate','avgDuration'], advRows);
+    var advCount = appendToSheet(ss, 'metrika_adv' + suffix, ['date','advSystem','visits','users','bounceRate','avgDuration'], advRows);
+    if (stats) stats.adv = (stats.adv || 0) + advCount;
   } else {
-    Logger.log('metrika_adv: нет новых данных');
+    Logger.log('metrika_adv' + suffix + ': нет новых данных');
   }
 }
 
-function updatePages(brand, ss, overwrite) {
-  if (overwrite) clearSheet(ss, 'metrika_pages');
-  var existingPages = overwrite ? new Set() : getExistingDates(ss, 'metrika_pages');
+function updatePages(counterId, suffix, ss, overwrite, stats) {
+  suffix = suffix || '';
+  if (overwrite) clearSheet(ss, 'metrika_pages' + suffix);
+  var existingPages = overwrite ? new Set() : getExistingDates(ss, 'metrika_pages' + suffix);
   var months = getCompletedMonths();
   var pageRows = [];
   for (var mi = 0; mi < months.length; mi++) {
     var mo = months[mi];
     var monthKey = mo.label.substring(0, 7);
     if (existingPages.has(monthKey)) { Logger.log('Пропуск ' + monthKey + ' — уже есть'); continue; }
-    Logger.log('Загружаем страницы за ' + monthKey);
-    var pages = fetchData(brand.counterId,
+    Logger.log('Загружаем страницы за ' + monthKey + ' ' + ('metrika_pages' + suffix));
+    var pages = fetchData(counterId,
       'ym:s:visits,ym:s:bounceRate,ym:s:avgVisitDurationSeconds',
       'ym:s:startURLPath', mo.date1, mo.date2);
     if (pages.data) {
@@ -257,7 +334,8 @@ function updatePages(brand, ss, overwrite) {
     }
     Utilities.sleep(500);
   }
-  appendToSheet(ss, 'metrika_pages', ['date','page','visits','bounceRate','avgDuration'], pageRows);
+  var pagesCount = appendToSheet(ss, 'metrika_pages' + suffix, ['date','page','visits','bounceRate','avgDuration'], pageRows);
+  if (stats) stats.pages = (stats.pages || 0) + pagesCount;
 }
 
 function fetchBytime(counterId, metrics, dimensions, date1, date2, attribution, filters) {
@@ -298,6 +376,7 @@ function fetchWithRetry(baseUrl) {
     if (a < accuracies.length - 1) Utilities.sleep(1000);
   }
   Logger.log('Не удалось получить данные даже с accuracy=low');
+  RUN_ERRORS.push({ brand: CURRENT_BRAND, detail: JSON.stringify(data.errors) });
   return data;
 }
 
@@ -348,4 +427,5 @@ function appendToSheet(ss, name, headers, rows) {
   if (sheet.getLastRow() === 0) sheet.appendRow(headers);
   for (var i = 0; i < rows.length; i++) sheet.appendRow(rows[i]);
   Logger.log(name + ': добавлено ' + rows.length + ' строк');
+  return rows.length;
 }
