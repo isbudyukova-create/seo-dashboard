@@ -4,8 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SEO Dashboard — dental.sadkomed.ru</title>
+<link rel="icon" type="image/png" href="icons/favicon.png">
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;500&family=Golos+Text:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <style>
 :root {
   --bg: #f5f5fb;
@@ -38,6 +40,7 @@ body {
 /* Header */
 .header { margin-bottom: 36px; }
 .header-top { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
+.header-titles { flex: 1 1 100%; }
 .brand-name {
   font-family: 'Unbounded', sans-serif;
   font-size: 13px;
@@ -131,6 +134,56 @@ body {
   color: #fff;
 }
 
+/* Section nav (оглавление) */
+.section-nav {
+  display: flex;
+  gap: 6px;
+  flex-wrap: nowrap;
+  align-items: center;
+  margin-top: 8px;
+}
+.section-nav-btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-family: 'Golos Text', sans-serif;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.section-nav-btn:hover { border-color: var(--text); color: var(--text); }
+.section-nav-btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--surface2);
+}
+.section-nav-btn::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background 0.15s;
+}
+.section-nav-btn.active::before { background: var(--accent); }
+
+/* Section block header */
+.block-header {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+  margin: 40px 0 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--border);
+}
+
 /* Section */
 .section { margin-bottom: 32px; }
 .section-label {
@@ -165,7 +218,7 @@ body {
   gap: 4px;
   font-size: 12px;
   padding: 3px 8px;
-  border-radius: 10px;
+  border-radius: 6px;
 }
 .delta.up { background: var(--green-bg); color: var(--green); }
 .delta.down { background: var(--red-bg); color: var(--red); }
@@ -181,7 +234,7 @@ body {
   padding: 20px;
 }
 .chart-card-title { font-size: 13px; font-weight: 500; margin-bottom: 16px; color: var(--muted); }
-.chart-wrap { position: relative; height: 200px; }
+.chart-wrap { position: relative; height: 280px; }
 
 /* Queries table */
 .queries-card {
@@ -251,6 +304,14 @@ body {
 .freq-num { font-size: 12px; color: var(--muted); min-width: 52px; text-align: right; }
 .freq-bar-bg { flex: 1; height: 4px; background: var(--border); border-radius: 2px; max-width: 80px; }
 .freq-bar { height: 4px; background: var(--accent); border-radius: 2px; }
+.src-cell { display: flex; align-items: center; gap: 6px; }
+.src-toggle-wrap { width: 14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.src-toggle { background: none; border: none; cursor: pointer; padding: 0; color: var(--muted); font-size: 10px; transition: transform 0.2s; line-height: 1; }
+.src-toggle.expanded { transform: rotate(90deg); }
+.src-icon { width: 18px; height: 18px; flex-shrink: 0; display: block; }
+.src-child-row { display: none; }
+.src-child-row.visible { display: table-row; }
+.src-child-row .src-cell { padding-left: 20px; color: var(--muted); font-size: 13px; }
 .query-link { color: var(--muted); font-size: 11px; text-decoration: none; }
 .query-link:hover { color: var(--text); }
 .query-text { margin-right: 6px; }
@@ -266,7 +327,8 @@ body {
 .query-up { background: var(--green-bg); color: var(--green); }
 .query-down { background: var(--red-bg); color: var(--red); }
 .query-new { background: var(--blue-bg); color: var(--accent); }
-.visits-period-btn {
+.visits-period-btn,
+.direct-period-btn {
   padding: 3px 10px;
   border: 1px solid var(--border);
   border-radius: 20px;
@@ -277,8 +339,71 @@ body {
   cursor: pointer;
   transition: all .15s;
 }
-.visits-period-btn:hover { border-color: var(--text); color: var(--text); }
-.visits-period-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
+.visits-period-btn:hover,
+.direct-period-btn:hover { border-color: var(--text); color: var(--text); }
+.visits-period-btn.active,
+.direct-period-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
+.direct-campaign-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.direct-campaign-tab {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all .15s;
+  font-family: 'Golos Text', sans-serif;
+  white-space: nowrap;
+}
+.direct-campaign-tab:hover { border-color: var(--text); color: var(--text); }
+.direct-campaign-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
+.direct-pivot-table { width: 100%; border-collapse: collapse; }
+.direct-pivot-table th {
+  padding: 10px 20px;
+  text-align: right;
+  font-weight: 500;
+  color: var(--muted);
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.direct-pivot-table th:first-child { text-align: left; min-width: 180px; }
+.direct-pivot-table td {
+  padding: 10px 20px;
+  font-size: 13px;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  color: var(--text);
+}
+.direct-pivot-table td.direct-metric-label { text-align: left; }
+.direct-pivot-table tbody tr:last-child td { border-bottom: none; }
+.direct-pivot-table tbody tr:hover td { background: var(--surface2); }
+.direct-cb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 15px; height: 15px;
+  border: 1.5px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+  flex-shrink: 0;
+  position: relative;
+  transition: background .15s, border-color .15s;
+}
+.direct-cb:checked::after {
+  content: '';
+  position: absolute;
+  left: 3px; top: 0px;
+  width: 5px; height: 9px;
+  border: 2px solid #fff;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
 .show-more-btn {
   width: 100%;
   padding: 12px;
@@ -338,6 +463,9 @@ body {
 .page-title-link { color: var(--text); text-decoration: none; font-size: 13px; }
 .page-title-link:hover { color: var(--accent); text-decoration: underline; }
 .page-path-small { font-size: 11px; color: var(--muted); margin-top: 2px; }
+/* Фиксируем ширины колонок таблицы страниц, чтобы длинные URL не выталкивали ВИЗИТЫ/ОТКАЗЫ/ВРЕМЯ */
+#section-metrika-pages .queries-table { table-layout: fixed; }
+#section-metrika-pages .queries-table td:nth-child(2) { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 
 /* Категории страниц */
 .page-cat-filter { display: flex; gap: 4px; flex-wrap: wrap; }
@@ -356,6 +484,7 @@ body {
 .page-cat-btn[data-cat="questions"].active { background: #f5eeff; color: #7b35c8; }
 .page-cat-btn[data-cat="contacts"].active  { background: #e6f4ee; color: #1a7a45; }
 .page-cat-btn[data-cat="articles"].active  { background: #e6f4f4; color: #1a7070; }
+.page-cat-btn[data-cat="staff"].active     { background: #fdecf2; color: #c2185b; }
 .cat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .page-cat-reset {
   width: 26px; height: 26px; border-radius: 50%;
@@ -371,32 +500,29 @@ tr.cat-news      td { background: #fffbf0 !important; }
 tr.cat-questions td { background: #faf0ff !important; }
 tr.cat-contacts  td { background: #f0f8f4 !important; }
 tr.cat-articles  td { background: #f0f8f8 !important; }
+tr.cat-staff     td { background: #fdf2f8 !important; }
 
-/* Column hints */
-.th-hint {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--border);
-  color: var(--muted);
-  font-size: 9px;
-  font-weight: 600;
-  cursor: default;
+
+/* Sortable table headers */
+.sortable-th { cursor: pointer; user-select: none; transition: color 0.15s; }
+.sortable-th:hover { color: var(--accent); }
+.sort-arrow { font-size: 9px; margin-left: 3px; opacity: 0.3; }
+.sort-arrow.active { opacity: 1; color: var(--accent); }
+
+/* Own brand row highlight */
+tr.row-own td { background: rgba(61,61,200,0.06) !important; }
+
+/* Inline tooltip without badge */
+.has-tip {
   position: relative;
-  vertical-align: middle;
-  margin-left: 3px;
-  transition: background 0.15s;
+  cursor: help;
 }
-.th-hint:hover { background: var(--accent); color: #fff; }
-.th-hint::after {
+.has-tip::after {
   content: attr(data-tip);
   position: absolute;
   top: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  transform: none;
   background: var(--text);
   color: #fff;
   font-size: 12px;
@@ -414,8 +540,9 @@ tr.cat-articles  td { background: #f0f8f8 !important; }
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   line-height: 1.5;
 }
-.th-hint:hover::after { opacity: 1; }
-.th-hint-left::after { left: auto; right: 0; transform: none; }
+.has-tip:hover::after { opacity: 1; }
+/* Для правых колонок: раскрывать подсказку влево, чтобы не упиралась в край карточки */
+.has-tip.tip-left::after { left: auto; right: 0; }
 
 /* Back to top */
 .back-to-top {
@@ -455,6 +582,34 @@ tr.cat-articles  td { background: #f0f8f8 !important; }
 }
 .brand-btn:hover { color: var(--text); }
 .brand-btn.active { background: var(--surface); color: var(--accent); font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.center-switcher-row { display: flex; justify-content: flex-end; margin-top: 10px; }
+
+/* Loading dot — done state */
+.loading-dot.done { background: var(--green); animation: none; opacity: 1; }
+
+/* Metric card footer (delta row) */
+.metric-card-footer { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+/* «vs год назад» hint in metric card */
+.metric-yoy-hint { font-size: 11px; color: var(--muted); margin-left: 4px; }
+
+/* Share % column in traffic sources */
+.share-pct { color: var(--muted); font-size: 12px; }
+
+/* Ad system icon */
+.adv-icon { width: 16px; height: 16px; object-fit: contain; margin-right: 6px; vertical-align: middle; flex-shrink: 0; }
+
+/* Ad system cell (icon + name) */
+.adv-system-cell { display: flex; align-items: center; }
+
+/* Category count badge inside page-cat-btn */
+.cat-count { margin-left: 4px; font-size: 11px; opacity: 0.65; font-weight: 400; }
+
+/* Row number cell in ranked tables */
+.row-num { color: var(--muted); font-size: 12px; text-align: center; }
+
+/* Week number label inside weekly table header cell */
+.direct-week-sup { display: block; color: var(--muted); font-size: 10px; margin-bottom: 2px; }
 </style>
 </head>
 <body>
@@ -462,35 +617,50 @@ tr.cat-articles  td { background: #f0f8f8 !important; }
 
   <div class="header">
     <div class="header-top">
-      <div>
+      <div class="header-titles">
         <div class="brand-name">SEO-отчёт</div>
         <div class="header-title" id="header-title">dental.sadkomed.ru</div>
       </div>
-      <div style="display:flex;align-items:center;gap:12px;">
-        <div class="brand-switcher">
+      <div style="display:flex;align-items:center;gap:12px;margin-left:auto;">
+        <div class="brand-switcher" id="brand-switcher">
           <button class="brand-btn active" onclick="switchBrand(0, this)">Стоматология</button>
-          <button class="brand-btn" onclick="switchBrand(1, this)">Здоровенок</button>
+          <button class="brand-btn" onclick="switchBrand(1, this)">Клиника</button>
+          <button class="brand-btn" onclick="switchBrand(2, this)">Офтальмология</button>
+          <button class="brand-btn" onclick="switchBrand(3, this)">Здоровенок</button>
+          <button class="brand-btn" onclick="switchBrand(4, this)">Дино</button>
+          <button class="brand-btn" onclick="switchBrand(5, this)">Косметология</button>
+          <button class="brand-btn" onclick="switchBrand(6, this)">КДЛ</button>
         </div>
         <div class="loading-badge" id="status-badge">
           <span class="loading-dot"></span>
           Загружаем данные...
         </div>
       </div>
+      <div class="center-switcher-row" id="center-switcher-wrap" style="display:none;">
+        <div class="brand-switcher" id="center-switcher"></div>
+      </div>
     </div>
   </div>
 
   <div class="month-tabs-wrap" id="month-tabs-wrap">
     <div class="month-tabs" id="month-tabs"></div>
+    <div class="section-nav" id="section-nav">
+      <button class="section-nav-btn" data-target="keys-block-header" onclick="scrollToBlock('keys-block-header')">keys.so</button>
+      <button class="section-nav-btn" data-target="metrika-block-header" onclick="scrollToBlock('metrika-block-header')">Яндекс Метрика</button>
+      <button class="section-nav-btn" data-target="direct-block-header" onclick="scrollToBlock('direct-block-header')">Яндекс Директ</button>
+    </div>
   </div>
 
-  <div class="section">
-    <div class="section-label">Позиции в поиске</div>
+  <div class="block-header" id="keys-block-header">keys.so</div>
+
+  <div class="section" id="section-pos-metrics">
+    <div class="section-label">Запросы сайта в топе</div>
     <div class="metrics-grid" id="pos-metrics">
       <div class="metric-card"><div class="metric-card-label">Загрузка...</div></div>
     </div>
   </div>
 
-  <div class="section">
+  <div class="section" id="section-pos-charts">
     <div class="charts-grid">
       <div class="chart-card">
         <div class="chart-card-title">Динамика топ-позиций</div>
@@ -503,7 +673,34 @@ tr.cat-articles  td { background: #f0f8f8 !important; }
     </div>
   </div>
 
-  <div class="section">
+  <!-- Конкуренты в органической выдаче -->
+  <div class="section" id="section-org-competitors">
+    <div class="section-label">Конкуренты в органической выдаче</div>
+    <div class="queries-card">
+      <div class="queries-header">
+        <span class="queries-title">Запросы конкурентов в поиске</span>
+        <span class="queries-count" id="org-competitors-count"></span>
+      </div>
+      <table class="queries-table">
+        <thead>
+          <tr id="org-competitors-head">
+            <th style="width:32px">#</th>
+            <th class="sortable-th" onclick="sortOrgBy('domain')">Домен<span class="sort-arrow" id="org-arrow-domain">▲</span></th>
+            <th style="width:70px" class="sortable-th" onclick="sortOrgBy('top1')">Топ 1<span class="sort-arrow" id="org-arrow-top1">▲</span></th>
+            <th style="width:70px" class="sortable-th" onclick="sortOrgBy('top5')">Топ 5<span class="sort-arrow" id="org-arrow-top5">▲</span></th>
+            <th style="width:70px" class="sortable-th" onclick="sortOrgBy('top10')">Топ 10<span class="sort-arrow active" id="org-arrow-top10">▼</span></th>
+            <th style="width:70px" class="sortable-th" onclick="sortOrgBy('top50')">Топ 50<span class="sort-arrow" id="org-arrow-top50">▲</span></th>
+            <th style="width:90px" class="sortable-th has-tip tip-left" onclick="sortOrgBy('traffic')" data-tip="Ориентировочный органический трафик в сутки">Трафик<span class="sort-arrow" id="org-arrow-traffic">▲</span></th>
+            <th style="width:80px" class="sortable-th" onclick="sortOrgBy('pages')">Страниц<span class="sort-arrow" id="org-arrow-pages">▲</span></th>
+          </tr>
+        </thead>
+        <tbody id="org-competitors-body"></tbody>
+      </table>
+      <button class="show-more-btn" id="show-more-org-btn" onclick="toggleOrgShowAll()" style="display:none"></button>
+    </div>
+  </div>
+
+  <div class="section" id="section-queries">
     <div class="section-label">Запросы в органической выдаче</div>
     <div class="queries-card">
       <div class="queries-header">
@@ -533,7 +730,7 @@ tr.cat-articles  td { background: #f0f8f8 !important; }
     </div>
   </div>
 
-  <div class="section">
+  <div class="section" id="section-ads">
     <div class="section-label">Конкуренты — контекстная реклама</div>
     <div class="ads-card">
       <div class="queries-header">
@@ -543,10 +740,10 @@ tr.cat-articles  td { background: #f0f8f8 !important; }
         <thead>
           <tr>
             <th>Домен</th>
-            <th style="width:100px">Объявлений <span class="th-hint" data-tip="Количество объявлений найденного сайта конкурента в контекстной рекламе">?</span></th>
-            <th style="width:100px">Запросов <span class="th-hint" data-tip="Количество запросов, по которым показываются объявления найденного сайта">?</span></th>
-            <th style="width:80px">Трафик <span class="th-hint th-hint-left" data-tip="Ориентировочный объём ежесуточного трафика из контекста без учёта таргетинга. Рассчитывается как произведение точной частотности на прогноз CTR, делённое на 30 дней">?</span></th>
-            <th style="width:180px">Бюджет <span class="th-hint th-hint-left" data-tip="Ориентировочная сумма, которую сайт тратит в месяц на рекламу в Яндекс.Директ. Данные собираются из инструмента «Прогноз бюджета» на основании запросов, по которым сайт показывался в рекламной выдаче">?</span></th>
+            <th style="width:100px" class="has-tip" data-tip="Количество объявлений найденного сайта конкурента в контекстной рекламе">Объявлений</th>
+            <th style="width:100px" class="has-tip" data-tip="Количество запросов, по которым показываются объявления найденного сайта">Запросов</th>
+            <th style="width:80px" class="has-tip tip-left" data-tip="Ориентировочный объём ежесуточного трафика из контекста без учёта таргетинга. Рассчитывается как произведение точной частотности на прогноз CTR, делённое на 30 дней">Трафик</th>
+            <th style="width:180px" class="has-tip tip-left" data-tip="Ориентировочная сумма, которую сайт тратит в месяц на рекламу в Яндекс.Директ. Данные собираются из инструмента «Прогноз бюджета» на основании запросов, по которым сайт показывался в рекламной выдаче">Бюджет</th>
           </tr>
         </thead>
         <tbody id="ads-body"></tbody>
@@ -555,29 +752,31 @@ tr.cat-articles  td { background: #f0f8f8 !important; }
     </div>
   </div>
 
+  <div class="block-header" id="metrika-block-header">Яндекс Метрика</div>
+
   <!-- МЕТРИКА: Посещаемость -->
   <div class="section" id="section-metrika-traffic">
-    <div class="section-label">Посещаемость — Яндекс.Метрика</div>
+    <div class="section-label">Посещаемость</div>
     <div class="metrics-grid" id="metrika-traffic-metrics"></div>
     <div class="chart-card" style="margin-top:16px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div class="chart-card-title" style="margin-bottom:0">Динамика визитов</div>
         <div style="display:flex;gap:4px">
-          <button class="visits-period-btn active" data-months="12" onclick="setVisitsPeriod(12,this)">1 год</button>
-          <button class="visits-period-btn" data-months="6" onclick="setVisitsPeriod(6,this)">6 мес</button>
           <button class="visits-period-btn" data-months="3" onclick="setVisitsPeriod(3,this)">3 мес</button>
+          <button class="visits-period-btn" data-months="6" onclick="setVisitsPeriod(6,this)">6 мес</button>
+          <button class="visits-period-btn active" data-months="12" onclick="setVisitsPeriod(12,this)">12 мес</button>
         </div>
       </div>
-      <div class="chart-wrap" style="height:240px"><canvas id="mVisitsLineChart"></canvas></div>
+      <div class="chart-wrap" style="height:280px"><canvas id="mVisitsLineChart"></canvas></div>
     </div>
-    <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="charts-grid" style="margin-top:16px">
       <div class="chart-card">
         <div class="chart-card-title">Месяц к месяцу</div>
-        <div class="chart-wrap" style="height:220px"><canvas id="mMoMChart"></canvas></div>
+        <div class="chart-wrap"><canvas id="mMoMChart"></canvas></div>
       </div>
       <div class="chart-card">
         <div class="chart-card-title">Год к году</div>
-        <div class="chart-wrap" style="height:220px"><canvas id="mYoYChart"></canvas></div>
+        <div class="chart-wrap"><canvas id="mYoYChart"></canvas></div>
       </div>
     </div>
     <div class="charts-grid" style="margin-top:16px">
@@ -643,6 +842,7 @@ tr.cat-articles  td { background: #f0f8f8 !important; }
           <span class="queries-title">Топ страниц по визитам</span>
           <div class="page-cat-filter" id="page-cat-filter">
             <button class="page-cat-btn" data-cat="services" onclick="togglePageCat('services',this)"><span class="cat-dot" style="background:#3d3dc8"></span>Услуги</button>
+            <button class="page-cat-btn" data-cat="staff" onclick="togglePageCat('staff',this)"><span class="cat-dot" style="background:#d6336c"></span>Врачи</button>
             <button class="page-cat-btn" data-cat="news" onclick="togglePageCat('news',this)"><span class="cat-dot" style="background:#f0a500"></span>Новости</button>
             <button class="page-cat-btn" data-cat="questions" onclick="togglePageCat('questions',this)"><span class="cat-dot" style="background:#9b5de5"></span>Вопросы</button>
             <button class="page-cat-btn" data-cat="contacts" onclick="togglePageCat('contacts',this)"><span class="cat-dot" style="background:#1a7a45"></span>Контакты</button>
@@ -667,40 +867,206 @@ tr.cat-articles  td { background: #f0f8f8 !important; }
     </div>
   </div>
 
+  <!-- ЯНДЕКС ДИРЕКТ -->
+  <div class="block-header" id="direct-block-header" style="display:none">Яндекс Директ</div>
+  <div class="section" id="section-direct" style="display:none">
+
+    <!-- Шапка: кампании + период -->
+    <div class="queries-card">
+      <div class="queries-header">
+        <div class="direct-campaign-tabs" id="direct-campaign-tabs"></div>
+      </div>
+      <div class="queries-header" style="padding-top:8px;padding-bottom:8px;border-bottom:none;justify-content:flex-end">
+        <div style="display:flex;gap:4px">
+          <button class="direct-period-btn" onclick="setDirectPeriod(3,this)">3 мес</button>
+          <button class="direct-period-btn active" onclick="setDirectPeriod(6,this)">6 мес</button>
+          <button class="direct-period-btn" onclick="setDirectPeriod(12,this)">12 мес</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- График динамики (нормализованный) -->
+    <div class="chart-card" style="margin-top:16px">
+      <div class="chart-card-title">Динамика по месяцам (нормализованная, 0–100%)</div>
+      <div class="chart-wrap" style="height:280px"><canvas id="directLineChart"></canvas></div>
+    </div>
+
+    <!-- Таблица: динамика по месяцам -->
+    <div class="queries-card" style="margin-top:16px">
+      <div class="queries-header">
+        <span class="queries-title">Показатели по месяцам</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="direct-pivot-table" id="direct-monthly-table"></table>
+      </div>
+    </div>
+
+    <!-- Таблица: по неделям активного месяца -->
+    <div class="queries-card" style="margin-top:16px">
+      <div class="queries-header">
+        <span class="queries-title">Показатели по неделям — <span id="direct-weekly-month-label"></span></span>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="direct-pivot-table" id="direct-weekly-table"></table>
+      </div>
+    </div>
+
+  </div>
+
 </div>
 
 <script>
+Chart.register(ChartDataLabels);
+Chart.defaults.plugins.datalabels = { display: false };
+
+function datalabelsConfig(count) {
+  if (count > 3) return { display: false };
+  return {
+    display: true,
+    anchor: 'end',
+    align: 'end',
+    offset: -2,
+    color: '#7b7b9d',
+    font: { size: 11, family: 'Golos Text' },
+    formatter: v => (v !== null && v !== undefined && v !== '') ? Number(v).toLocaleString('ru-RU') : ''
+  };
+}
+
 const BRANDS = [
-  { name: 'Садко', title: 'dental.sadkomed.ru', sheetId: '18_wK4ym4OvY5YuCtTI7ZmEZhbrxXdGcflIL8sIQxxMo', domain: 'https://dental.sadkomed.ru' },
-  { name: 'Здоровенок', title: 'zdorovenok.ru', sheetId: '1CsSX3R0eA0mHTM8R3VDTyjenU_buDnQwlgZ6xPVkCK0', domain: 'https://zdorovenok.sadkomed.ru' },
+  { name: 'Стоматология', title: 'dental.sadkomed.ru', sheetId: '18_wK4ym4OvY5YuCtTI7ZmEZhbrxXdGcflIL8sIQxxMo', domain: 'https://dental.sadkomed.ru', directTab: 'stom' },
+  { name: 'Клиника', title: 'clinic.sadkomed.ru', sheetId: '10VLpClABfSUCZIVoQjGKn7Di1OqYdS8ymtMdkUqgpJM', domain: 'https://clinic.sadkomed.ru', directTab: 'kst',
+    centers: [
+      { key: 'clinic',    name: 'Клиника',    domain: 'https://clinic.sadkomed.ru' },
+      { key: 'women',     name: 'Женский',    domain: 'https://women.sadkomed.ru' },
+      { key: 'men',       name: 'Мужской',    domain: 'https://men.sadkomed.ru' },
+      { key: 'mammology', name: 'Маммология', domain: 'https://mammology.sadkomed.ru' },
+      { key: 'neurology', name: 'Неврология', domain: 'https://neurology.sadkomed.ru' },
+    ] },
+  { name: 'Офтальмология', title: 'vizhu.sadkomed.ru', sheetId: '1QYetwmeWqpntHSpeu7fs6rKE-H-ojNj-P368Yl0o4BM', domain: 'https://vizhu.sadkomed.ru', directTab: 'oftalm' },
+  { name: 'Здоровенок', title: 'zdorovenok.ru', sheetId: '1CsSX3R0eA0mHTM8R3VDTyjenU_buDnQwlgZ6xPVkCK0', domain: 'https://zdorovenok.sadkomed.ru', directTab: 'zdorovenok' },
+  { name: 'Дино', title: 'dino.sadkomed.ru', sheetId: '1rWn4O1OG4iQQVZakrHlfEhp0bkC0aqFXu0MjcFTfkQk', domain: 'https://dino.sadkomed.ru', directTab: 'dino' },
+  { name: 'Косметология', title: 'cosmetology.sadkomed.ru', sheetId: '1oBZmlZyeWIoRfuTCZfenWu1V9wr68ynvpYwz8nK6-I0', domain: 'https://cosmetology.sadkomed.ru', directTab: 'kik' },
+  { name: 'КДЛ', title: 'lab.sadkomed.ru', sheetId: '1_tiSoa0L4IYDpmqFQ5uomsgqMuChsDMv9pxQTowUQV0', domain: 'https://lab.sadkomed.ru', directTab: null },
 ];
+// Все наши домены (для подсветки своих строк в таблицах конкурентов)
+const OUR_DOMAINS = (() => {
+  const s = new Set();
+  const add = d => { if (d) s.add(d.replace(/^https?:\/\//, '').toLowerCase()); };
+  BRANDS.forEach(b => { add(b.domain); add(b.title); (b.centers || []).forEach(c => add(c.domain)); });
+  return s;
+})();
+function isOwnDomain(domain) {
+  return OUR_DOMAINS.has((domain || '').replace(/^https?:\/\//, '').toLowerCase());
+}
+
+const DIRECT_SHEET_ID = '1pKM-243Fol0oPcbcyD6fTQiUBEuXQVKzWGrjMMjOMVE';
 let activeBrand = 0;
+let activeCenter = 'all'; // для брендов с центрами: 'all' (агрегат) или key центра
 const SHEETS = { positions: 'positions', queries: 'queries', ads: 'ads' };
 
-let allData = { positions: [], queries: [], ads: [], metrika_traffic: [], metrika_sources: [], metrika_adv: [], metrika_pages: [], pages_map: [] };
+let allData = { positions: [], queries: [], ads: [], metrika_traffic: [], metrika_sources: [], metrika_adv: [], metrika_pages: [], pages_map: [], domains_map: [], direct_weekly: [] };
 let activeMonth = null;
 let posFilter = 0;
 let showAll = false;
 let adsShowAll = false;
+let orgShowAll = false;
 let visitsPeriod = 12;
 let posChart = null, trafficChart = null;
+let directLineChart = null;
+let directPeriod = 6;
+let directCampaigns = new Set();
+let directChecked = new Set(['clicks', 'cost']);
+const DIRECT_METRICS = [
+  { key: 'sov',         label: 'Доля показов',              color: '#4E8AF4', fmt: n => n.toFixed(1) + '%' },
+  { key: 'impressions', label: 'Показы',                    color: '#7B9EF4', fmt: n => Math.round(n).toLocaleString('ru-RU') },
+  { key: 'clicks',      label: 'Клики',                     color: '#FF3080', fmt: n => Math.round(n).toLocaleString('ru-RU') },
+  { key: 'cost',        label: 'Бюджет, ₽',                 color: '#6CBE6C', fmt: n => Math.round(n).toLocaleString('ru-RU') + ' ₽' },
+  { key: 'bounces',     label: 'Отказы, %',                 color: '#FFA040', fmt: n => (n * 100).toFixed(1) + '%' },
+  { key: 'cpc',         label: 'За один клик (CPC, ₽)',     color: '#9B85C4', fmt: n => Math.round(n).toLocaleString('ru-RU') + ' ₽' },
+  { key: 'ctr',         label: 'Кликательность (CTR, %)',   color: '#FF8C42', fmt: n => n.toFixed(1) + '%' },
+  { key: 'cpa',         label: 'За одну конверсию (CPA, ₽)',color: '#4DD0C4', fmt: n => Math.round(n).toLocaleString('ru-RU') + ' ₽' },
+  { key: 'conversions', label: 'Конверсии',                 color: '#FF6B6B', fmt: n => Math.round(n).toLocaleString('ru-RU') },
+  { key: 'conv_rate',   label: '% конверсий',               color: '#E86BC4', fmt: n => n.toFixed(1) + '%' },
+];
 const ROWS_DEFAULT = 15;
 
 function sheetUrl(name) {
   return `https://docs.google.com/spreadsheets/d/${BRANDS[activeBrand].sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(name)}`;
 }
 
-async function switchBrand(idx, btn) {
-  if (idx === activeBrand) return;
+// ── Центры (мультисчётчиковые бренды, напр. Клиника) ─────────
+// Активный объект центра или null (нет центров / режим «Все»)
+function activeCenterObj() {
+  const b = BRANDS[activeBrand];
+  if (!b.centers || activeCenter === 'all') return null;
+  return b.centers.find(c => c.key === activeCenter) || null;
+}
+// true — выбран бренд с центрами и активен агрегат «Все»
+function isAggregateView() {
+  return !!BRANDS[activeBrand].centers && activeCenter === 'all';
+}
+// Домен для матчинга «своей» строки (без протокола)
+function currentDomain() {
+  const c = activeCenterObj();
+  return ((c ? c.domain : BRANDS[activeBrand].domain) || '').replace(/^https?:\/\//, '');
+}
+
+function renderCenterTabs() {
+  const wrap = document.getElementById('center-switcher-wrap');
+  const cont = document.getElementById('center-switcher');
+  const b = BRANDS[activeBrand];
+  if (!b.centers) { wrap.style.display = 'none'; cont.innerHTML = ''; return; }
+  wrap.style.display = 'flex';
+  const tabs = [{ key: 'all', name: 'Все' }, ...b.centers];
+  cont.innerHTML = tabs.map(t =>
+    `<button class="brand-btn${activeCenter === t.key ? ' active' : ''}" onclick="switchCenter('${t.key}')">${t.name}</button>`
+  ).join('');
+}
+
+function updateHeaderTitle() {
+  const b = BRANDS[activeBrand];
+  const c = activeCenterObj();
+  let title;
+  if (c) title = c.domain.replace(/^https?:\/\//, '');
+  else if (b.centers) title = b.title + ' — все центры';
+  else title = b.title;
+  document.getElementById('header-title').textContent = title;
+}
+
+async function switchCenter(key) {
+  if (key === activeCenter) return;
   const savedMonthLabel = activeMonth ? formatMonth(activeMonth) : null;
-  activeBrand = idx;
-  document.querySelectorAll('.brand-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('header-title').textContent = BRANDS[idx].title;
+  activeCenter = key;
+  renderCenterTabs();
+  updateHeaderTitle();
   activeMonth = null;
   posFilter = 0;
   showAll = false;
   adsShowAll = false;
+  orgShowAll = false;
+  document.querySelectorAll('.pos-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
+  await init();
+  if (savedMonthLabel) {
+    const months = getAllMonths();
+    const found = months.find(m => formatMonth(m) === savedMonthLabel);
+    if (found) { activeMonth = found; renderMonthTabs(months); renderAll(); }
+  }
+}
+
+async function switchBrand(idx, btn) {
+  if (idx === activeBrand) return;
+  const savedMonthLabel = activeMonth ? formatMonth(activeMonth) : null;
+  activeBrand = idx;
+  activeCenter = 'all';
+  document.querySelectorAll('#brand-switcher .brand-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCenterTabs();
+  updateHeaderTitle();
+  activeMonth = null;
+  posFilter = 0;
+  showAll = false;
+  adsShowAll = false;
+  directCampaigns.clear();
   document.querySelectorAll('.pos-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
   await init();
   // восстанавливаем месяц если такой есть у нового бренда
@@ -713,6 +1079,16 @@ async function switchBrand(idx, btn) {
 
 async function fetchSheet(name) {
   const r = await fetch(sheetUrl(name));
+  if (!r.ok) throw new Error(`HTTP ${r.status} — лист "${name}"`);
+  const text = await r.text();
+  return parseCSV(text);
+}
+
+async function fetchDirectSheet() {
+  const tab = BRANDS[activeBrand].directTab;
+  if (!tab) return [];
+  const url = `https://docs.google.com/spreadsheets/d/${DIRECT_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
+  const r = await fetch(url);
   const text = await r.text();
   return parseCSV(text);
 }
@@ -720,7 +1096,7 @@ async function fetchSheet(name) {
 function parseCSV(text) {
   const lines = text.trim().split('\n');
   if (lines.length < 2) return [];
-  const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim());
+  const headers = splitCSVLine(lines[0]).map(h => h.replace(/^"|"$/g, '').trim());
   return lines.slice(1).map(line => {
     const vals = splitCSVLine(line);
     const obj = {};
@@ -826,15 +1202,52 @@ function selectMonth(label) {
   activeMonth = months.find(m => formatMonth(m) === label) || activeMonth;
   showAll = false;
   adsShowAll = false;
+  orgShowAll = false;
+  activeCats.clear();
   renderAll();
 }
 
 function getAllMonths() {
   const posMonths = getMonths(allData.positions);
   const metMonths = getMonths(allData.metrika_traffic);
+  const directMonths = getMonths(allData.direct_weekly);
   const map = new Map();
-  [...posMonths, ...metMonths].forEach(d => map.set(formatMonth(d), d));
+  [...posMonths, ...metMonths, ...directMonths].forEach(d => map.set(formatMonth(d), d));
   return [...map.values()].sort((a, b) => a - b);
+}
+
+function updateBlockHeaders() {
+  const keysIds = ['section-pos-metrics','section-pos-charts','section-org-competitors','section-queries','section-ads'];
+  const metrikaIds = ['section-metrika-traffic','section-metrika-sources','section-metrika-adv','section-metrika-pages'];
+  const anyVisible = ids => ids.some(id => document.getElementById(id).style.display !== 'none');
+  document.getElementById('keys-block-header').style.display = anyVisible(keysIds) ? '' : 'none';
+  document.getElementById('metrika-block-header').style.display = anyVisible(metrikaIds) ? '' : 'none';
+  // оглавление: прячем кнопку, если её блок скрыт
+  document.querySelectorAll('.section-nav-btn').forEach(btn => {
+    const header = document.getElementById(btn.dataset.target);
+    btn.style.display = (header && header.style.display !== 'none') ? '' : 'none';
+  });
+}
+
+function scrollToBlock(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const wrap = document.getElementById('month-tabs-wrap');
+  const offset = wrap.offsetHeight + 12;
+  const y = el.getBoundingClientRect().top + window.scrollY - offset;
+  window.scrollTo({ top: y, behavior: 'smooth' });
+}
+
+function updateSectionNavActive() {
+  const wrap = document.getElementById('month-tabs-wrap');
+  const offset = wrap.offsetHeight + 24;
+  const buttons = [...document.querySelectorAll('.section-nav-btn')].filter(b => b.style.display !== 'none');
+  let activeId = buttons.length ? buttons[0].dataset.target : null;
+  buttons.forEach(btn => {
+    const header = document.getElementById(btn.dataset.target);
+    if (header && header.getBoundingClientRect().top - offset <= 0) activeId = btn.dataset.target;
+  });
+  buttons.forEach(btn => btn.classList.toggle('active', btn.dataset.target === activeId));
 }
 
 function renderAll() {
@@ -845,16 +1258,110 @@ function renderAll() {
   renderCharts(posMonths);
   renderQueries();
   renderAds();
+  renderOrgCompetitors();
   renderMetrikaTraffic();
   renderMetrikaSources();
   renderMetrikaAdv();
   renderMetrikaPages();
+  renderDirectStats();
+  updateBlockHeaders();
+  updateSectionNavActive();
+}
+
+let orgSort = { col: 'top10', dir: 'desc' };
+
+function sortOrgBy(col) {
+  if (orgSort.col === col) {
+    orgSort.dir = orgSort.dir === 'desc' ? 'asc' : 'desc';
+  } else {
+    orgSort.col = col;
+    orgSort.dir = col === 'domain' ? 'asc' : 'desc';
+  }
+  renderOrgCompetitors();
+}
+
+function renderOrgCompetitors() {
+  const section = document.getElementById('section-org-competitors');
+  // Конкуренты общие для клиники: внутри отдельного центра не показываем,
+  // только в режиме «Все» (там «наша» строка и конкуренты сведены по всем центрам)
+  if (activeCenterObj()) { section.style.display = 'none'; return; }
+  const brandDomain = isAggregateView() ? currentDomain() : BRANDS[activeBrand].title;
+  const allRows = rowsForMonth(allData.positions, activeMonth).filter(r => r.domain);
+  const tbody = document.getElementById('org-competitors-body');
+  const countEl = document.getElementById('org-competitors-count');
+  if (!allRows.length) { section.style.display = 'none'; return; }
+  section.style.display = '';
+
+  const { col, dir } = orgSort;
+  allRows.sort((a, b) => {
+    let va = col === 'domain' ? (a[col] || '') : (parseInt(a[col]) || 0);
+    let vb = col === 'domain' ? (b[col] || '') : (parseInt(b[col]) || 0);
+    if (va < vb) return dir === 'asc' ? -1 : 1;
+    if (va > vb) return dir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  ['domain','top1','top5','top10','top50','traffic','pages'].forEach(c => {
+    const el = document.getElementById('org-arrow-' + c);
+    if (!el) return;
+    el.classList.toggle('active', c === col);
+    el.textContent = (c === col && dir === 'asc') ? '▲' : '▼';
+  });
+
+  const ORG_ROWS_DEFAULT = 10;
+  countEl.textContent = allRows.length + ' сайтов';
+  const display = orgShowAll ? allRows : allRows.slice(0, ORG_ROWS_DEFAULT);
+  tbody.innerHTML = display.map((r, i) => {
+    const isOwn = r.domain === brandDomain;
+    const traffic = parseInt(r.traffic) || 0;
+    return `<tr class="${isOwn ? 'row-own' : ''}">
+      <td>${i + 1}</td>
+      <td><a href="https://${r.domain}" target="_blank" class="page-title-link">${domainName(r.domain)}</a></td>
+      <td>${parseInt(r.top1)||0}</td>
+      <td>${parseInt(r.top5)||0}</td>
+      <td>${parseInt(r.top10)||0}</td>
+      <td>${parseInt(r.top50)||0}</td>
+      <td>${traffic.toLocaleString('ru-RU')}</td>
+      <td>${parseInt(r.pages)||0}</td>
+    </tr>`;
+  }).join('');
+
+  const btn = document.getElementById('show-more-org-btn');
+  const hiddenCount = allRows.length - ORG_ROWS_DEFAULT;
+  if (hiddenCount > 0) {
+    btn.style.display = 'block';
+    btn.textContent = orgShowAll
+      ? `Скрыть (показать первые ${ORG_ROWS_DEFAULT})`
+      : `Показать ещё ${hiddenCount} ${hiddenCount === 1 ? 'строку' : hiddenCount < 5 ? 'строки' : 'строк'}`;
+  } else {
+    btn.style.display = 'none';
+  }
+}
+
+function toggleOrgShowAll() {
+  orgShowAll = !orgShowAll;
+  renderOrgCompetitors();
+}
+
+function domainName(domain) {
+  const entry = allData.domains_map.find(r => r.domain === domain);
+  return (entry && entry.name) ? entry.name : domain;
+}
+
+function brandRow(month) {
+  const domain = currentDomain();
+  const rows = rowsForMonth(allData.positions, month);
+  return rows.find(r => r.domain === domain) || null;
 }
 
 function renderMetrics(months) {
-  const cur = rowsForMonth(allData.positions, activeMonth)[0];
+  const section = document.getElementById('section-pos-metrics');
+  if (!allData.positions.length) { section.style.display = 'none'; return; }
+  section.style.display = '';
+
+  const cur = brandRow(activeMonth);
   const prev = prevMonth(months, activeMonth);
-  const prevRow = prev ? rowsForMonth(allData.positions, prev)[0] : null;
+  const prevRow = prev ? brandRow(prev) : null;
 
   if (!cur) {
     document.getElementById('pos-metrics').innerHTML = '<div class="error-msg">Нет данных за этот месяц</div>';
@@ -878,26 +1385,32 @@ function renderMetrics(months) {
       const diff = val - pval;
       if (diff > 0) delta = `<span class="delta up">↑ +${diff}</span>`;
       else if (diff < 0) delta = `<span class="delta down">↓ ${diff}</span>`;
-      else delta = `<span class="delta neutral">= без изм.</span>`;
+      else delta = '';
     }
+    const prefix = f.key === 'traffic' ? '≈' : '';
+    const labelClass = f.key === 'traffic' ? 'metric-card-label has-tip' : 'metric-card-label';
+    const tipData = f.key === 'traffic' ? ' data-tip="Ориентировочное количество пользователей из органического поиска в сутки"' : '';
     return `<div class="metric-card">
-      <div class="metric-card-label">${f.label}</div>
-      <div class="metric-card-value">${val.toLocaleString('ru-RU')}</div>
+      <div class="${labelClass}"${tipData}>${f.label}</div>
+      <div class="metric-card-value">${prefix}${val.toLocaleString('ru-RU')}</div>
       ${delta}
     </div>`;
   }).join('');
 }
 
 function renderCharts(months) {
-  const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
-  const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
-  const labelColor = '#7a776f';
+  const section = document.getElementById('section-pos-charts');
+  if (!months.length) { section.style.display = 'none'; return; }
+  section.style.display = '';
+
+  const gridColor = '#e2e2f0';
+  const labelColor = '#7b7b9d';
 
   const labels = months.map(m => formatMonth(m));
-  const top1 = months.map(m => { const r = rowsForMonth(allData.positions, m)[0]; return r ? (parseInt(r.top1)||0) : null; });
-  const top5 = months.map(m => { const r = rowsForMonth(allData.positions, m)[0]; return r ? (parseInt(r.top5)||0) : null; });
-  const top10 = months.map(m => { const r = rowsForMonth(allData.positions, m)[0]; return r ? (parseInt(r.top10)||0) : null; });
-  const traffic = months.map(m => { const r = rowsForMonth(allData.positions, m)[0]; return r ? (parseInt(r.traffic)||0) : null; });
+  const top1 = months.map(m => { const r = brandRow(m); return r ? (parseInt(r.top1)||0) : null; });
+  const top5 = months.map(m => { const r = brandRow(m); return r ? (parseInt(r.top5)||0) : null; });
+  const top10 = months.map(m => { const r = brandRow(m); return r ? (parseInt(r.top10)||0) : null; });
+  const traffic = months.map(m => { const r = brandRow(m); return r ? (parseInt(r.traffic)||0) : null; });
 
   if (posChart) posChart.destroy();
   posChart = new Chart(document.getElementById('posChart'), {
@@ -925,15 +1438,19 @@ function renderCharts(months) {
     type: 'bar',
     data: {
       labels,
-      datasets: [{ label: 'Трафик', data: traffic, backgroundColor: '#c4c4ee', borderColor: '#3d3dc8', borderWidth: 1 }]
+      datasets: [{ label: 'Трафик', data: traffic, backgroundColor: '#c4c4ee', borderRadius: 3 }]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      plugins: {
+        legend: { display: false },
+        datalabels: datalabelsConfig(traffic.length)
+      },
       scales: {
         x: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11, family: 'Golos Text' }, maxRotation: 0 } },
         y: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11, family: 'Golos Text' } } }
-      }
+      },
+      layout: { padding: { top: traffic.length <= 3 ? 20 : 0 } }
     }
   });
 }
@@ -964,6 +1481,10 @@ function setVisitsPeriod(months, btn) {
 }
 
 function renderQueries() {
+  const section = document.getElementById('section-queries');
+  if (!allData.queries.length) { section.style.display = 'none'; return; }
+  section.style.display = '';
+
   let rows = rowsForMonth(allData.queries, activeMonth);
   if (posFilter > 0) rows = rows.filter(r => parseInt(r.position) === posFilter);
   rows.sort((a, b) => (parseInt(a.position)||9) - (parseInt(b.position)||9) || (parseInt(b.frequency)||0) - (parseInt(a.frequency)||0));
@@ -995,7 +1516,7 @@ function renderQueries() {
     const prevRow = prevRows.find(p => (p.query || '').toLowerCase() === (r.query || '').toLowerCase());
     let changeBadge = '';
     if (!prevRow) {
-      changeBadge = `<span class="query-change query-new">новый</span>`;
+      changeBadge = `<span class="query-change query-new">new</span>`;
     } else {
       const prevPos = parseInt(prevRow.position) || 0;
       const delta = prevPos - pos; // положительное = поднялся
@@ -1035,6 +1556,12 @@ function adsDelta(cur, prev) {
 }
 
 function renderAds() {
+  const section = document.getElementById('section-ads');
+  // Реклама конкурентов общая для клиники: внутри центра не показываем, только в «Все»
+  if (activeCenterObj()) { section.style.display = 'none'; return; }
+  if (!allData.ads.length) { section.style.display = 'none'; return; }
+  section.style.display = '';
+
   const rows = rowsForMonth(allData.ads, activeMonth);
   rows.sort((a, b) => parseBudget(b.budget) - parseBudget(a.budget));
   const maxBudget = Math.max(...rows.map(r => parseBudget(r.budget)), 1);
@@ -1061,7 +1588,9 @@ function renderAds() {
     const prevAds = prevRow ? (parseInt(prevRow.ads) || 0) : null;
     const prevTraffic = prevRow ? (parseInt(prevRow.traffic) || 0) : null;
     const prevBudget = prevRow ? parseBudget(prevRow.budget) : null;
-    const budgetDelta = prevBudget !== null && budget ? (() => {
+    // дельту показываем только если за прошлый месяц был реальный бюджет (>0),
+    // иначе «прирост с нуля» равен всему бюджету и вводит в заблуждение
+    const budgetDelta = prevBudget && budget ? (() => {
       const d = budget - prevBudget;
       if (d === 0) return '';
       const cls = d > 0 ? 'query-up' : 'query-down';
@@ -1069,8 +1598,9 @@ function renderAds() {
       return ` <span class="query-change ${cls}">${arrow}${Math.abs(d).toLocaleString('ru-RU')} ₽</span>`;
     })() : '';
 
-    return `<tr class="${!budget ? 'ads-row-empty' : ''}">
-      <td>${domain || '—'}</td>
+    const isOwn = isOwnDomain(domain);
+    return `<tr class="${isOwn ? 'row-own ' : ''}${!budget ? 'ads-row-empty' : ''}">
+      <td>${domain ? `<a href="https://${domain}" target="_blank" class="page-title-link">${domainName(domain)}</a>` : '—'}</td>
       <td>${adsVal || '—'}${prevAds !== null ? adsDelta(adsVal, prevAds) : ''}</td>
       <td>${r.queries || '—'}</td>
       <td>${trafficVal || '—'}${prevTraffic !== null ? adsDelta(trafficVal, prevTraffic) : ''}</td>
@@ -1108,24 +1638,36 @@ function setStatus(text, loading) {
   const badge = document.getElementById('status-badge');
   badge.innerHTML = loading
     ? `<span class="loading-dot"></span>${text}`
-    : `<span style="width:6px;height:6px;border-radius:50%;background:#2d6a4f;display:inline-block"></span>${text}`;
+    : `<span class="loading-dot done"></span>${text}`;
 }
 
 // ── Категории страниц ─────────────────────────────────────────
 const PAGE_CATEGORIES = {
   contacts:  { pattern: /\/contacts\//i,                color: 'cat-contacts' },
   news:      { pattern: /\/(novosti|news)\//i,            color: 'cat-news' },
-  questions: { pattern: /\/voprosy\//i,                  color: 'cat-questions' },
+  questions: { pattern: /\/(voprosy|vopros)\//i,         color: 'cat-questions' },
   articles:  { pattern: /\/(stati|blog|articles|article)\//i, color: 'cat-articles' },
-  services:  { pattern: /./,                             color: 'cat-services' }, // всё остальное
+  staff:     { pattern: /\/(staff|spetsialisty)\//i,     color: 'cat-staff' },
+  services:  { pattern: /\/(uslugi|services)\//i,        color: 'cat-services' },
 };
 
+// Если в данных встречается явный идентификатор услуг (/uslugi/ или /services/),
+// то к «Услугам» относятся ТОЛЬКО такие страницы. Если идентификатора нет —
+// «Услуги» работают как catch-all (всё, кроме главной и исключений).
+let servicesExplicitMode = false;
+
 function getPageCat(path) {
+  if (!path || path === '/') return null; // главная — без категории
   for (const [key, cfg] of Object.entries(PAGE_CATEGORIES)) {
     if (key === 'services') continue; // проверяем в конце
     if (cfg.pattern.test(path)) return key;
   }
-  return 'services';
+  if (servicesExplicitMode) {
+    // Явный режим: услуги — только страницы с идентификатором services/uslugi
+    return PAGE_CATEGORIES.services.pattern.test(path) ? 'services' : null;
+  }
+  if (/price/i.test(path) || /\/sales\//i.test(path)) return null; // прайсы и акции — не услуги
+  return 'services'; // catch-all: всё остальное
 }
 
 let activeCats = new Set();
@@ -1163,13 +1705,18 @@ function mPrevYearMonth(month) {
   return new Date(month.getFullYear() - 1, month.getMonth(), 1);
 }
 
-function metrikaDelta(cur, prev, suffix = '') {
+function metrikaDelta(cur, prev, suffix = '', invert = false) {
   if (prev === null || prev === undefined) return '';
   const d = cur - prev;
   if (d === 0) return '';
-  const cls = d > 0 ? 'query-up' : 'query-down';
+  const positive = invert ? d < 0 : d > 0;
+  const cls = positive ? 'query-up' : 'query-down';
   const arrow = d > 0 ? '↑' : '↓';
-  return `<span class="query-change ${cls}">${arrow}${Math.abs(d).toLocaleString('ru-RU')}${suffix}</span>`;
+  return ` <span class="query-change ${cls}">${arrow}${Math.abs(d).toLocaleString('ru-RU')}${suffix}</span>`;
+}
+
+function getUniqueMonths(rows) {
+  return [...new Map(rows.map(r => [formatMonth(new Date(r.date)), new Date(r.date)])).values()].sort((a, b) => a - b);
 }
 
 function formatDuration(sec) {
@@ -1188,7 +1735,7 @@ function renderMetrikaTraffic() {
   section.style.display = '';
 
   const cur = mRowsForMonth(rows, activeMonth)[0];
-  const mMonths = [...new Map(rows.map(r => [r.date, new Date(r.date)])).values()].sort((a,b)=>a-b);
+  const mMonths = getUniqueMonths(rows);
   const prevM = prevMonth(mMonths, activeMonth);
   const prev = prevM ? mRowsForMonth(rows, prevM)[0] : null;
   const prevYear = mPrevYearMonth(activeMonth);
@@ -1198,7 +1745,7 @@ function renderMetrikaTraffic() {
     { label: 'Визиты', key: 'visits', suffix: '' },
     { label: 'Просмотры', key: 'pageviews', suffix: '' },
     { label: 'Пользователи', key: 'users', suffix: '' },
-    { label: 'Отказы', key: 'bounceRate', suffix: '%', round: true },
+    { label: 'Отказы', key: 'bounceRate', suffix: '%', round: true, invertDelta: true },
     { label: 'Время на сайте', key: 'avgDuration', format: formatDuration },
   ];
 
@@ -1208,12 +1755,12 @@ function renderMetrikaTraffic() {
     const prevVal = prev ? (parseFloat(prev[m.key]) || 0) : null;
     const pyVal = prevYearRow ? (parseFloat(prevYearRow[m.key]) || 0) : null;
     const display = m.format ? m.format(val) : (m.round ? val.toFixed(1) : val.toLocaleString('ru-RU')) + m.suffix;
-    const d1 = prevVal !== null ? metrikaDelta(val, prevVal, m.suffix) : '';
-    const d2 = pyVal !== null ? `<span style="font-size:11px;color:var(--muted);margin-left:4px">vs год назад ${metrikaDelta(val, pyVal, m.suffix)}</span>` : '';
+    const d1 = prevVal !== null ? metrikaDelta(val, prevVal, m.suffix, m.invertDelta) : '';
+    const d2 = pyVal !== null ? `<span class="metric-yoy-hint">vs год назад ${metrikaDelta(val, pyVal, m.suffix, m.invertDelta)}</span>` : '';
     return `<div class="metric-card">
       <div class="metric-card-label">${m.label}</div>
       <div class="metric-card-value">${display}</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">${d1 || '<span class="delta neutral">= без изм.</span>'}${d2}</div>
+      <div class="metric-card-footer">${d1}${d2}</div>
     </div>`;
   }).join('');
 
@@ -1225,7 +1772,7 @@ function renderMetrikaTraffic() {
   const visits = lineMonths.map(d => { const r = mRowsForMonth(rows, d)[0]; return r ? parseFloat(r.visits) : null; });
   const pageviews = lineMonths.map(d => { const r = mRowsForMonth(rows, d)[0]; return r ? parseFloat(r.pageviews) : null; });
   const gridColor = '#e2e2f0', labelColor = '#7b7b9d';
-  const chartOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11 } } }, y: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11 } } } } };
+  const chartOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: datalabelsConfig(labels.length) }, scales: { x: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11, family: 'Golos Text' } } }, y: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11, family: 'Golos Text' } } } }, layout: { padding: { top: labels.length <= 3 ? 20 : 0 } } };
 
   if (mVisitsLineChart) mVisitsLineChart.destroy();
   mVisitsLineChart = new Chart(document.getElementById('mVisitsLineChart'), {
@@ -1238,14 +1785,18 @@ function renderMetrikaTraffic() {
         borderColor: '#3d3dc8',
         backgroundColor: 'rgba(61,61,200,0.08)',
         tension: 0,
-        pointRadius: 4,
-        pointBackgroundColor: '#3d3dc8',
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        pointHoverBackgroundColor: '#3d3dc8',
+        pointHoverBorderColor: '#fff',
+        pointHoverBorderWidth: 2,
         borderWidth: 2,
         fill: true,
       }]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
       plugins: { legend: { display: false } },
       scales: {
         x: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11, family: 'Golos Text' } } },
@@ -1263,27 +1814,28 @@ function renderMetrikaTraffic() {
   const barOpts = (tooltipLabels) => ({
     responsive: true, maintainAspectRatio: false,
     plugins: {
-      legend: { display: true, labels: { color: labelColor, font: { size: 11, family: 'Golos Text' }, boxWidth: 14, padding: 12 } },
-      tooltip: { callbacks: { title: (items) => tooltipLabels[items[0].dataIndex] || '' } }
+      legend: { display: false },
+      tooltip: { callbacks: { title: (items) => tooltipLabels[items[0].dataIndex] || '' } },
+      datalabels: datalabelsConfig(2)
     },
+    layout: { padding: { top: 20 } },
     scales: {
-      x: { grid: { display: false }, ticks: { color: labelColor, font: { size: 12, family: 'Golos Text' } } },
+      x: { grid: { display: false }, ticks: { color: labelColor, font: { size: 11, family: 'Golos Text' } } },
       y: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11, family: 'Golos Text' } }, beginAtZero: true, grace: '15%' }
     }
   });
 
   // График 1: текущий месяц vs предыдущий
-  const prevM2 = prevMonth(mMonths, activeMonth);
-  const momLabels = [prevM2 ? formatMonth(prevM2).split(' ')[0] : '—', activeMonth ? formatMonth(activeMonth).split(' ')[0] : '—'];
-  const momTooltips = [prevM2 ? formatMonth(prevM2) : '', activeMonth ? formatMonth(activeMonth) : ''];
-  const momData = [getVal(prevM2), getVal(activeMonth)];
+  const momLabels = [prevM ? formatMonth(prevM).split(' ')[0] : '—', activeMonth ? formatMonth(activeMonth).split(' ')[0] : '—'];
+  const momTooltips = [prevM ? formatMonth(prevM) : '', activeMonth ? formatMonth(activeMonth) : ''];
+  const momData = [getVal(prevM), getVal(activeMonth)];
 
   if (mMoMChart) mMoMChart.destroy();
   mMoMChart = new Chart(document.getElementById('mMoMChart'), {
     type: 'bar',
     data: {
       labels: momLabels,
-      datasets: [{ label: 'Визиты', data: momData, backgroundColor: ['rgba(61,61,200,0.35)', '#3d3dc8'], borderRadius: 4 }]
+      datasets: [{ label: 'Визиты', data: momData, backgroundColor: ['rgba(196,196,238,0.55)', '#c4c4ee'], borderRadius: 3 }]
     },
     options: barOpts(momTooltips)
   });
@@ -1301,7 +1853,7 @@ function renderMetrikaTraffic() {
     type: 'bar',
     data: {
       labels: yoyLabels2,
-      datasets: [{ label: 'Визиты', data: yoyData, backgroundColor: ['rgba(61,61,200,0.35)', '#3d3dc8'], borderRadius: 4 }]
+      datasets: [{ label: 'Визиты', data: yoyData, backgroundColor: ['rgba(196,196,238,0.55)', '#c4c4ee'], borderRadius: 3 }]
     },
     options: barOpts(yoyLabels2)
   });
@@ -1309,45 +1861,109 @@ function renderMetrikaTraffic() {
   if (mVisitsChart) mVisitsChart.destroy();
   mVisitsChart = new Chart(document.getElementById('mVisitsChart'), {
     type: 'bar',
-    data: { labels, datasets: [{ data: visits, backgroundColor: '#c4c4ee', borderColor: '#3d3dc8', borderWidth: 1 }] },
+    data: { labels, datasets: [{ data: visits, backgroundColor: '#c4c4ee', borderRadius: 3 }] },
     options: chartOpts
   });
 
   if (mPageviewsChart) mPageviewsChart.destroy();
   mPageviewsChart = new Chart(document.getElementById('mPageviewsChart'), {
     type: 'bar',
-    data: { labels, datasets: [{ data: pageviews, backgroundColor: '#c4c4ee', borderColor: '#3d3dc8', borderWidth: 1 }] },
+    data: { labels, datasets: [{ data: pageviews, backgroundColor: '#c4c4ee', borderRadius: 3 }] },
     options: chartOpts
   });
 }
 
 // ── МЕТРИКА: Источники трафика ───────────────────────────────
+const CHILD_ICONS = {
+  'ВКонтакте':    'icons/vk.png',
+  'Facebook':     'icons/facebook.png',
+  'Telegram':     'icons/tg.png',
+  'Дзен':         'icons/dzen.png',
+  'Яндекс.Дзен':  'icons/dzen.png',
+};
+function childIconHtml(name) {
+  const src = CHILD_ICONS[name] || 'icons/other.png';
+  return `<img class="src-icon" src="${src}" alt="">`;
+}
+
+const SRC_ICONS = {
+  'Переходы из поисковых систем':        'icons/poisk_sistem.svg',
+  'Переходы по ссылкам на сайтах':       'icons/po_ssilkam.svg',
+  'Прямые заходы':                       'icons/pryamie_zah.svg',
+  'Внутренние переходы':                 'icons/vnutr_perehod.svg',
+  'Переходы из социальных сетей':        'icons/soc_sety.svg',
+  'Переходы по рекламе':                 'icons/reclama.svg',
+  'Переходы из мессенджеров':            'icons/mesendjer.svg',
+  'Переходы из рекомендательных систем': 'icons/recomend.svg',
+};
+
 function renderMetrikaSources() {
-  const rows = mRowsForMonth(allData.metrika_sources, activeMonth);
+  const allRows = mRowsForMonth(allData.metrika_sources, activeMonth);
   const section = document.getElementById('section-metrika-sources');
   const tbody = document.getElementById('metrika-sources-body');
-  if (!rows.length) { section.style.display = 'none'; return; }
+  if (!allRows.length) { section.style.display = 'none'; return; }
   section.style.display = '';
 
-  rows.sort((a, b) => (parseFloat(b.visits)||0) - (parseFloat(a.visits)||0));
-  const total = rows.reduce((s, r) => s + (parseFloat(r.visits)||0), 0);
-  const maxV = Math.max(...rows.map(r => parseFloat(r.visits)||0), 1);
+  const topRows = allRows.filter(r => !r.parent);
+  const childMap = {};
+  allRows.filter(r => r.parent).forEach(r => {
+    if (!childMap[r.parent]) childMap[r.parent] = [];
+    childMap[r.parent].push(r);
+  });
 
-  tbody.innerHTML = rows.map(r => {
+  topRows.sort((a, b) => (parseFloat(b.visits)||0) - (parseFloat(a.visits)||0));
+  const total = topRows.reduce((s, r) => s + (parseFloat(r.visits)||0), 0);
+  const maxV = Math.max(...topRows.map(r => parseFloat(r.visits)||0), 1);
+
+  const html = [];
+  topRows.forEach(r => {
     const v = parseFloat(r.visits) || 0;
     const pct = total ? Math.round(v / total * 100) : 0;
     const bar = Math.round(v / maxV * 100);
-    return `<tr>
-      <td>${r.source || '—'}</td>
+    const children = childMap[r.source] || [];
+    const hasChildren = children.length > 0;
+    const iconSrc = SRC_ICONS[r.source];
+    const iconHtml = iconSrc ? `<img class="src-icon" src="${iconSrc}" alt="">` : '<span class="src-icon"></span>';
+    const toggleSlot = hasChildren
+      ? `<button class="src-toggle" onclick="toggleSrcChildren(this,'${r.source.replace(/'/g,"\\'")}')">▶</button>`
+      : '';
+    html.push(`<tr>
+      <td><div class="src-cell"><span class="src-toggle-wrap">${toggleSlot}</span>${iconHtml}${r.source || '—'}</div></td>
       <td>
         <div class="freq-bar-wrap">
           <span class="freq-num">${v.toLocaleString('ru-RU')}</span>
           <div class="freq-bar-bg"><div class="freq-bar" style="width:${bar}%"></div></div>
         </div>
       </td>
-      <td style="color:var(--muted);font-size:12px">${pct}%</td>
-    </tr>`;
-  }).join('');
+      <td class="share-pct">${pct}%</td>
+    </tr>`);
+    if (hasChildren) {
+      children.sort((a, b) => (parseFloat(b.visits)||0) - (parseFloat(a.visits)||0));
+      const maxChild = Math.max(...children.map(c => parseFloat(c.visits)||0), 1);
+      children.forEach(c => {
+        const cv = parseFloat(c.visits) || 0;
+        const cpct = v ? Math.round(cv / v * 100) : 0;
+        const cbar = Math.round(cv / maxChild * 100);
+        html.push(`<tr class="src-child-row" data-parent="${r.source}">
+          <td><div class="src-cell"><span class="src-toggle-wrap"></span>${childIconHtml(c.source)}${c.source || '—'}</div></td>
+          <td>
+            <div class="freq-bar-wrap">
+              <span class="freq-num">${cv.toLocaleString('ru-RU')}</span>
+              <div class="freq-bar-bg"><div class="freq-bar" style="width:${cbar}%"></div></div>
+            </div>
+          </td>
+          <td class="share-pct">${cpct}%</td>
+        </tr>`);
+      });
+    }
+  });
+  tbody.innerHTML = html.join('');
+}
+
+function toggleSrcChildren(btn, sourceKey) {
+  btn.classList.toggle('expanded');
+  const rows = document.querySelectorAll(`#metrika-sources-body .src-child-row[data-parent="${CSS.escape(sourceKey)}"]`);
+  rows.forEach(r => r.classList.toggle('visible'));
 }
 
 // ── МЕТРИКА: Рекламные системы ───────────────────────────────
@@ -1358,7 +1974,7 @@ function renderMetrikaAdv() {
   if (!rows.length) { section.style.display = 'none'; return; }
   section.style.display = '';
 
-  const mMonths = [...new Map(allData.metrika_adv.map(r => [r.date, new Date(r.date)])).values()].sort((a,b)=>a-b);
+  const mMonths = getUniqueMonths(allData.metrika_adv);
   const prevM = prevMonth(mMonths, activeMonth);
   const prevRows = prevM ? mRowsForMonth(allData.metrika_adv, prevM) : [];
 
@@ -1374,7 +1990,7 @@ function renderMetrikaAdv() {
     if (!name) return '';
     const lower = name.toLowerCase();
     for (const [key, src] of Object.entries(ADV_ICONS)) {
-      if (lower.includes(key)) return `<img src="${src}" style="width:16px;height:16px;object-fit:contain;margin-right:6px;vertical-align:middle;flex-shrink:0">`;
+      if (lower.includes(key)) return `<img src="${src}" class="adv-icon" alt="">`;
     }
     return '';
   }
@@ -1384,11 +2000,11 @@ function renderMetrikaAdv() {
     const v = parseFloat(r.visits) || 0;
     const prevV = prev ? (parseFloat(prev.visits) || 0) : null;
     return `<tr>
-      <td><div style="display:flex;align-items:center">${getAdvIcon(r.advSystem)}${r.advSystem || '—'}</div></td>
+      <td><div class="adv-system-cell">${getAdvIcon(r.advSystem)}${r.advSystem || '—'}</div></td>
       <td>${v.toLocaleString('ru-RU')}${prevV !== null ? metrikaDelta(v, prevV) : ''}</td>
-      <td>${parseFloat(r.users).toLocaleString('ru-RU') || '—'}</td>
-      <td>${parseFloat(r.bounceRate).toFixed(1) || '—'}%</td>
-      <td>${formatDuration(parseFloat(r.avgDuration) || 0)}</td>
+      <td>${isNaN(parseFloat(r.users)) ? '—' : parseFloat(r.users).toLocaleString('ru-RU')}</td>
+      <td>${isNaN(parseFloat(r.bounceRate)) ? '—' : parseFloat(r.bounceRate).toFixed(1) + '%'}</td>
+      <td>${parseFloat(r.avgDuration) > 0 ? formatDuration(parseFloat(r.avgDuration)) : '—'}</td>
     </tr>`;
   }).join('');
 }
@@ -1401,7 +2017,7 @@ function renderMetrikaPages() {
   if (!rows.length) { section.style.display = 'none'; return; }
   section.style.display = '';
 
-  const mMonths = [...new Map(allData.metrika_pages.map(r => [r.date, new Date(r.date)])).values()].sort((a,b)=>a-b);
+  const mMonths = getUniqueMonths(allData.metrika_pages);
   const prevM = prevMonth(mMonths, activeMonth);
   const prevRows = prevM ? mRowsForMonth(allData.metrika_pages, prevM) : [];
 
@@ -1409,15 +2025,20 @@ function renderMetrikaPages() {
   const pageMap = {};
   (allData.pages_map || []).forEach(r => { if (r.path) pageMap[r.path.trim()] = r.title; });
 
-  const domain = BRANDS[activeBrand].domain || '';
+  const _c = activeCenterObj();
+  const domain = (_c ? _c.domain : BRANDS[activeBrand].domain) || '';
   rows.sort((a, b) => (parseFloat(b.visits)||0) - (parseFloat(a.visits)||0));
 
   document.getElementById('metrika-pages-count').textContent = `${rows.length} страниц`;
 
+  // Определяем режим услуг: если хотя бы одна страница имеет идентификатор
+  // services/uslugi — переходим в явный режим (услуги = только эти страницы)
+  servicesExplicitMode = rows.some(r => PAGE_CATEGORIES.services.pattern.test(r.page || ''));
+
   // Считаем количество страниц по категориям и обновляем кнопки
-  const catCounts = { services: 0, news: 0, questions: 0, contacts: 0, articles: 0 };
-  rows.forEach(r => { const cat = getPageCat(r.page || '/'); catCounts[cat] = (catCounts[cat] || 0) + 1; });
-  const catLabels = { services: 'Услуги', news: 'Новости', questions: 'Вопросы', contacts: 'Контакты', articles: 'Статьи' };
+  const catCounts = { services: 0, staff: 0, news: 0, questions: 0, contacts: 0, articles: 0 };
+  rows.forEach(r => { const cat = getPageCat(r.page || '/'); if (cat) catCounts[cat] = (catCounts[cat] || 0) + 1; });
+  const catLabels = { services: 'Услуги', staff: 'Врачи', news: 'Новости', questions: 'Вопросы', contacts: 'Контакты', articles: 'Статьи' };
   document.querySelectorAll('.page-cat-btn').forEach(btn => {
     const cat = btn.dataset.cat;
     const dot = btn.querySelector('.cat-dot');
@@ -1427,10 +2048,11 @@ function renderMetrikaPages() {
     btn.appendChild(document.createTextNode(catLabels[cat]));
     if (count > 0) {
       const badge = document.createElement('span');
-      badge.style.cssText = 'margin-left:4px;font-size:11px;opacity:0.65;font-weight:400';
+      badge.className = 'cat-count';
       badge.textContent = count;
       btn.appendChild(badge);
     }
+    btn.classList.toggle('active', activeCats.has(cat));
   });
 
   // Строим рейтинг предыдущего месяца: path → rank (1-based)
@@ -1447,7 +2069,7 @@ function renderMetrikaPages() {
 
     let changeBadge = '';
     if (isNew) {
-      changeBadge = `<span class="query-change query-new">новая</span>`;
+      changeBadge = `<span class="query-change query-new">new</span>`;
     } else if (path in prevRankMap) {
       const delta = prevRankMap[path] - curRank; // + = поднялась, - = упала
       if (delta > 0) changeBadge = `<span class="query-change query-up">↑${delta}</span>`;
@@ -1455,93 +2077,521 @@ function renderMetrikaPages() {
     }
 
     return `<tr data-path="${path}">
-      <td style="color:var(--muted);font-size:12px;text-align:center">${curRank}</td>
+      <td class="row-num">${curRank}</td>
       <td>
         <a href="${url}" target="_blank" class="page-title-link">${title}</a>
         ${changeBadge}
       </td>
       <td>${v.toLocaleString('ru-RU')}</td>
-      <td>${parseFloat(r.bounceRate).toFixed(1) || '—'}%</td>
-      <td>${formatDuration(parseFloat(r.avgDuration) || 0)}</td>
+      <td>${isNaN(parseFloat(r.bounceRate)) ? '—' : parseFloat(r.bounceRate).toFixed(1) + '%'}</td>
+      <td>${parseFloat(r.avgDuration) > 0 ? formatDuration(parseFloat(r.avgDuration)) : '—'}</td>
     </tr>`;
   }).join('');
 
   applyPageCatHighlight();
 }
 
-const MOCK_DATA = {
-  positions: [
-    { date: '01.01.2025', top1: '12', top5: '34', top10: '67', traffic: '1840' },
-    { date: '01.02.2025', top1: '15', top5: '38', top10: '72', traffic: '2100' },
-    { date: '01.03.2025', top1: '14', top5: '41', top10: '78', traffic: '2340' },
-    { date: '01.04.2025', top1: '18', top5: '45', top10: '83', traffic: '2780' },
-    { date: '01.05.2025', top1: '21', top5: '52', top10: '91', traffic: '3120' },
-    { date: '01.06.2025', top1: '19', top5: '49', top10: '88', traffic: '2950' },
-  ],
-  queries: [
-    { date: '01.06.2025', position: '1', query: 'стоматология садко', frequency: '4200', page: 'https://dental.sadkomed.ru/' },
-    { date: '01.06.2025', position: '1', query: 'имплантация зубов нижний новгород', frequency: '3100', page: 'https://dental.sadkomed.ru/implantaciya/' },
-    { date: '01.06.2025', position: '1', query: 'лечение зубов под микроскопом', frequency: '1850', page: 'https://dental.sadkomed.ru/mikroskop/' },
-    { date: '01.06.2025', position: '1', query: 'садко стоматология официальный сайт', frequency: '1640', page: 'https://dental.sadkomed.ru/' },
-    { date: '01.06.2025', position: '1', query: 'зубной врач нижний новгород недорого', frequency: '1200', page: 'https://dental.sadkomed.ru/ceny/' },
-    { date: '01.06.2025', position: '2', query: 'виниры на зубы цена нн', frequency: '2600', page: 'https://dental.sadkomed.ru/viniry/' },
-    { date: '01.06.2025', position: '2', query: 'брекеты взрослым нижний новгород', frequency: '1970', page: 'https://dental.sadkomed.ru/brekety/' },
-    { date: '01.06.2025', position: '2', query: 'детская стоматология садко', frequency: '1430', page: 'https://dental.sadkomed.ru/deti/' },
-    { date: '01.06.2025', position: '2', query: 'лечение кариеса без боли нн', frequency: '1180', page: 'https://dental.sadkomed.ru/karies/' },
-    { date: '01.06.2025', position: '2', query: 'имплантация all on 4 нижний новгород', frequency: '870', page: 'https://dental.sadkomed.ru/all-on-4/' },
-    { date: '01.06.2025', position: '3', query: 'отбеливание зубов zoom 4', frequency: '2200', page: 'https://dental.sadkomed.ru/otbelivanie/' },
-    { date: '01.06.2025', position: '3', query: 'протезирование зубов нн', frequency: '1750', page: 'https://dental.sadkomed.ru/protezirovanie/' },
-    { date: '01.06.2025', position: '3', query: 'удаление зуба мудрости нижний новгород', frequency: '1320', page: 'https://dental.sadkomed.ru/udalenie/' },
-    { date: '01.06.2025', position: '3', query: 'пародонтология лечение десен', frequency: '980', page: 'https://dental.sadkomed.ru/parodontologiya/' },
-    { date: '01.06.2025', position: '3', query: 'элайнеры invisalign нижний новгород', frequency: '760', page: 'https://dental.sadkomed.ru/elainery/' },
-    { date: '01.06.2025', position: '3', query: 'коронки на зубы цена нн', frequency: '640', page: 'https://dental.sadkomed.ru/koronki/' },
-  ],
-  ads: [
-    { date: '01.06.2025', domain: 'identastom.ru', ads: '47', queries: '312', traffic: '5200', budget: '184000' },
-    { date: '01.06.2025', domain: 'stom-nn.ru', ads: '38', queries: '274', traffic: '4100', budget: '142000' },
-    { date: '01.06.2025', domain: 'denta-lux.ru', ads: '29', queries: '198', traffic: '2900', budget: '98000' },
-    { date: '01.06.2025', domain: 'smileclinic-nn.ru', ads: '21', queries: '145', traffic: '1850', budget: '67000' },
-    { date: '01.06.2025', domain: 'nn-implant.ru', ads: '15', queries: '97', traffic: '1100', budget: '41000' },
-    { date: '01.06.2025', domain: 'белаязубная.рф', ads: '11', queries: '74', traffic: '780', budget: '28000' },
-  ],
-};
+// ── ЯНДЕКС ДИРЕКТ ────────────────────────────────────────────
+
+function normalizeDirectRows(rows) {
+  function num(v) { const s = String(v || '0').replace(',', '.'); return (s === '--' || s === '') ? '0' : s; }
+  // Первый проход: считаем вхождения каждой граничной недели по кампании
+  const boundaryTotal = {};
+  rows.forEach(r => {
+    const campaign = r['Название кампании'] || r.campaign || '';
+    const rawWeek  = r['Неделя'] || r.date || '';
+    if (!campaign || !rawWeek.includes(' - ')) return;
+    const [startStr, endStr] = rawWeek.split(' - ').map(s => s.trim());
+    const startD = parseDate(startStr), endD = parseDate(endStr);
+    if (startD.getMonth() !== endD.getMonth() || startD.getFullYear() !== endD.getFullYear()) {
+      const key = campaign + '||' + rawWeek;
+      boundaryTotal[key] = (boundaryTotal[key] || 0) + 1;
+    }
+  });
+  const boundarySeen = {};
+  return rows.map(r => {
+    const campaign = r['Название кампании'] || r.campaign || '';
+    if (!campaign) return null;
+    const rawWeek = r['Неделя'] || r.date || '';
+    let dateStr = rawWeek, weekEndStr = '';
+    if (rawWeek.includes(' - ')) {
+      const [startStr, endStr] = rawWeek.split(' - ').map(s => s.trim());
+      const startD = parseDate(startStr);
+      const endD   = parseDate(endStr);
+      const isBoundary = startD.getMonth() !== endD.getMonth() || startD.getFullYear() !== endD.getFullYear();
+      if (isBoundary) {
+        const key = campaign + '||' + rawWeek;
+        const total = boundaryTotal[key] || 1;
+        boundarySeen[key] = (boundarySeen[key] || 0) + 1;
+        const firstOfEndMonth = `01.${String(endD.getMonth()+1).padStart(2,'0')}.${endD.getFullYear()}`;
+        const lastOfStartMonth = new Date(startD.getFullYear(), startD.getMonth() + 1, 0);
+        const lastOfStartStr = `${String(lastOfStartMonth.getDate()).padStart(2,'0')}.${String(startD.getMonth()+1).padStart(2,'0')}.${startD.getFullYear()}`;
+        if (total === 1) {
+          // одиночная граничная: относится к месяцу конца (напр. 30.03–05.04 → апрель 1–5)
+          dateStr    = firstOfEndMonth;
+          weekEndStr = endStr;
+        } else if (boundarySeen[key] === 1) {
+          // первое из двух: месяц начала (напр. 27.04–03.05 первый раз → апрель, до 30.04)
+          dateStr    = startStr;
+          weekEndStr = lastOfStartStr;
+        } else {
+          // второе из двух: месяц конца (напр. 27.04–03.05 второй раз → май 1–3)
+          dateStr    = firstOfEndMonth;
+          weekEndStr = endStr;
+        }
+      } else {
+        dateStr    = startStr;
+        weekEndStr = endStr;
+      }
+    }
+    const bouncesRaw = r['Отказы %'] !== undefined ? r['Отказы %'] : null;
+    const bounces = bouncesRaw !== null
+      ? String(parseFloat(num(bouncesRaw)) / 100)
+      : num(r.bounces);
+    const impressions = parseFloat(num(r['Показы']))  || 0;
+    const clicks      = parseFloat(num(r['Клики']))    || 0;
+    const cost        = parseFloat(num(r['Расход ₽'])) || 0;
+    const conversions = parseFloat(num(r['Action']))   || 0;
+    return {
+      date:        dateStr,
+      weekEnd:     weekEndStr,
+      campaign,
+      sov:         num(r['Ср. объём трафика'] || 0),
+      impressions: String(impressions),
+      clicks:      String(clicks),
+      cost:        String(cost),
+      bounces,
+      conversions: String(conversions),
+      ctr:         impressions > 0 ? String(clicks / impressions * 100) : '0',
+      cpc:         clicks      > 0 ? String(cost / clicks)              : '0',
+      cpa:         conversions > 0 ? String(cost / conversions)         : '0',
+      conv_rate:   clicks      > 0 ? String(conversions / clicks * 100) : '0',
+    };
+  }).filter(Boolean);
+}
+
+function getDirectCampaigns() {
+  return [...new Set(allData.direct_weekly.map(r => r.campaign).filter(Boolean))].sort();
+}
+
+// Свести набор строк Директа в одну запись: суммы по складываемым метрикам,
+// производные (CPC, CTR, CPA, % конверсий) — по общей формуле из сумм,
+// доля показов и отказы — среднее (их складывать некорректно).
+function aggregateDirectRows(rows) {
+  if (!rows.length) return null;
+  const impressions = rows.reduce((s, r) => s + (parseFloat(r.impressions) || 0), 0);
+  const clicks      = rows.reduce((s, r) => s + (parseFloat(r.clicks) || 0), 0);
+  const cost        = rows.reduce((s, r) => s + (parseFloat(r.cost) || 0), 0);
+  const conversions = rows.reduce((s, r) => s + (parseFloat(r.conversions) || 0), 0);
+  const sovRows     = rows.filter(r => parseFloat(r.sov) > 0);
+  const sov         = sovRows.length > 0 ? sovRows.reduce((s, r) => s + (parseFloat(r.sov) || 0), 0) / sovRows.length : 0;
+  const bRows       = rows.filter(r => parseFloat(r.bounces) > 0);
+  const bounces     = bRows.length > 0 ? bRows.reduce((s, r) => s + (parseFloat(r.bounces) || 0), 0) / bRows.length : 0;
+  const ctr         = impressions > 0 ? clicks / impressions * 100 : 0;
+  const cpc         = clicks > 0 ? cost / clicks : 0;
+  const cpa         = conversions > 0 ? cost / conversions : 0;
+  const conv_rate   = clicks > 0 ? conversions / clicks * 100 : 0;
+  return { sov, impressions, clicks, cost, bounces, cpc, ctr, cpa, conversions, conv_rate };
+}
+
+function aggregateDirectByMonth(campaigns, months) {
+  return months.map(month => {
+    const rows = allData.direct_weekly.filter(r =>
+      campaigns.has(r.campaign) && formatMonth(parseDate(r.date)) === formatMonth(month)
+    );
+    return aggregateDirectRows(rows);
+  });
+}
+
+function getDirectWeeklyData(campaigns, month) {
+  const rows = allData.direct_weekly
+    .filter(r => campaigns.has(r.campaign) && formatMonth(parseDate(r.date)) === formatMonth(month))
+    .sort((a, b) => parseDate(a.date) - parseDate(b.date));
+  if (!rows.length) return [];
+  const monthNames = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+  // Сгруппировать недели по дате начала, чтобы свести несколько РК в одну колонку
+  const byWeek = new Map();
+  rows.forEach(r => {
+    if (!byWeek.has(r.date)) byWeek.set(r.date, []);
+    byWeek.get(r.date).push(r);
+  });
+  const weekKeys = [...byWeek.keys()].sort((a, b) => parseDate(a) - parseDate(b));
+  return weekKeys.map(key => {
+    const wRows = byWeek.get(key);
+    const start = parseDate(key);
+    const lastDay = new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate();
+    const weekEndRow = wRows.find(r => r.weekEnd);
+    const endDay = weekEndRow
+      ? parseDate(weekEndRow.weekEnd).getDate()
+      : Math.min(start.getDate() + 6, lastDay);
+    const label = `${start.getDate()}–${endDay} ${monthNames[start.getMonth()]}`;
+    return { label, ...aggregateDirectRows(wRows) };
+  });
+}
+
+function renderDirectStats() {
+  const section = document.getElementById('section-direct');
+  const header  = document.getElementById('direct-block-header');
+  if (!allData.direct_weekly.length) {
+    section.style.display = 'none';
+    header.style.display  = 'none';
+    return;
+  }
+  section.style.display = '';
+  header.style.display  = '';
+
+  const campaigns = getDirectCampaigns();
+  // Убрать выбранные РК, которых больше нет; гарантировать хотя бы одну выбранную
+  directCampaigns.forEach(c => { if (!campaigns.includes(c)) directCampaigns.delete(c); });
+  if (directCampaigns.size === 0 && campaigns.length) directCampaigns.add(campaigns[0]);
+
+  // Табы кампаний (мультивыбор) + сброс, если выбрано больше одной
+  const tabsHtml = campaigns.map(c =>
+    `<button class="direct-campaign-tab${directCampaigns.has(c) ? ' active' : ''}" onclick="toggleDirectCampaign(${JSON.stringify(c).replace(/"/g,'&quot;')})">${c}</button>`
+  ).join('');
+  const resetHtml = directCampaigns.size > 1
+    ? `<button class="page-cat-reset" onclick="resetDirectCampaigns()" title="Сбросить выбор кампаний">↺</button>`
+    : '';
+  document.getElementById('direct-campaign-tabs').innerHTML = tabsHtml + resetHtml;
+
+  // Конечный месяц: активный (если в нём есть данные Директа), иначе последний с данными
+  const allM = getAllMonths();
+  const directMonths = allM.filter(m =>
+    allData.direct_weekly.some(r => formatMonth(parseDate(r.date)) === formatMonth(m))
+  );
+  const activeIdx = directMonths.findIndex(m => formatMonth(m) === formatMonth(activeMonth));
+  const endMonth  = activeIdx >= 0 ? directMonths[activeIdx] : (directMonths[directMonths.length - 1] || activeMonth);
+
+  // Календарный диапазон: количество = выбранному периоду (3/6/12), минимум 3
+  const count = Math.max(3, directPeriod);
+  const periodMonths = [];
+  for (let i = count - 1; i >= 0; i--) {
+    periodMonths.push(new Date(endMonth.getFullYear(), endMonth.getMonth() - i, 1));
+  }
+
+  const monthlyData = aggregateDirectByMonth(directCampaigns, periodMonths);
+
+  renderDirectLineChart(periodMonths, monthlyData);
+  renderDirectMonthlyTable(periodMonths, monthlyData);
+  renderDirectWeeklyTable();
+}
+
+function renderDirectLineChart(allMonths, allMonthlyData) {
+  const ctx = document.getElementById('directLineChart').getContext('2d');
+  if (directLineChart) directLineChart.destroy();
+
+  // Обрезаем пустые месяцы по краям, чтобы график не начинался/заканчивался пустым местом
+  const firstIdx = allMonthlyData.findIndex(d => d !== null);
+  const lastIdx  = allMonthlyData.reduce((acc, d, i) => d !== null ? i : acc, -1);
+  const months      = firstIdx >= 0 ? allMonths.slice(firstIdx, lastIdx + 1) : allMonths;
+  const monthlyData = firstIdx >= 0 ? allMonthlyData.slice(firstIdx, lastIdx + 1) : allMonthlyData;
+
+  const labels   = months.map(m => formatMonth(m));
+  const checked  = DIRECT_METRICS.filter(m => directChecked.has(m.key));
+  const datasets = checked.map(metric => {
+    const raw    = monthlyData.map(d => d ? (d[metric.key] || 0) : null);
+    const maxVal = Math.max(...raw.filter(v => v !== null), 1);
+    return {
+      label: metric.label,
+      actualData: raw,
+      data: raw.map(v => v !== null ? Math.round(v / maxVal * 100) : null),
+      borderColor: metric.color,
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      tension: 0,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      pointHoverBackgroundColor: metric.color,
+      pointHoverBorderColor: '#fff',
+      pointHoverBorderWidth: 2,
+      spanGaps: true,
+    };
+  });
+
+  const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+  const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+  directLineChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: true, labels: { font: { family: 'Golos Text', size: 12 }, boxWidth: 12, padding: 16 } },
+        tooltip: { callbacks: { label: item => {
+          const actual = item.dataset.actualData?.[item.dataIndex];
+          const metric = checked.find(m => m.label === item.dataset.label);
+          const formatted = (actual !== null && actual !== undefined && metric) ? metric.fmt(actual) : item.raw + '%';
+          return `${item.dataset.label}: ${formatted}`;
+        }}}
+      },
+      scales: {
+        x: { grid: { color: gridColor }, ticks: { font: { family: 'Golos Text', size: 11 } } },
+        y: {
+          min: 0,
+          max: 120,
+          grid: { color: gridColor },
+          ticks: { stepSize: 20, font: { family: 'Golos Text', size: 11 }, callback: v => v <= 100 ? v + '%' : null }
+        }
+      }
+    }
+  });
+}
+
+function renderDirectMonthlyTable(months, monthlyData) {
+  const table = document.getElementById('direct-monthly-table');
+  const headerCells = months.map(m => `<th>${formatMonth(m)}</th>`).join('');
+
+  const rows = DIRECT_METRICS.map(metric => {
+    const checked = directChecked.has(metric.key);
+    const cells = monthlyData.map(data => {
+      if (!data) return `<td style="color:var(--muted)">—</td>`;
+      return `<td>${metric.fmt(data[metric.key] || 0)}</td>`;
+    }).join('');
+    return `<tr>
+      <td class="direct-metric-label">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" class="direct-cb" ${checked ? 'checked' : ''}
+            style="${checked ? `background:${metric.color};border-color:${metric.color}` : ''}"
+            data-color="${metric.color}"
+            onchange="this.style.background=this.checked?this.dataset.color:'';this.style.borderColor=this.checked?this.dataset.color:'';toggleDirectMetric('${metric.key}',this)">
+          <span>${metric.label}</span>
+        </label>
+      </td>
+      ${cells}
+    </tr>`;
+  }).join('');
+
+  const allChecked = DIRECT_METRICS.every(m => directChecked.has(m.key));
+  const selectAllCb = `<input type="checkbox" class="direct-cb" id="direct-cb-all"
+    ${allChecked ? 'checked' : ''}
+    style="${allChecked ? `background:var(--accent);border-color:var(--accent)` : ''}"
+    onchange="toggleAllDirectMetrics(this)">`;
+  table.innerHTML = `<thead><tr><th>${selectAllCb}</th>${headerCells}</tr></thead><tbody>${rows}</tbody>`;
+}
+
+function toggleAllDirectMetrics(checkbox) {
+  const toCheck = checkbox.checked;
+  checkbox.style.background    = toCheck ? 'var(--accent)' : '';
+  checkbox.style.borderColor   = toCheck ? 'var(--accent)' : '';
+  DIRECT_METRICS.forEach(m => toCheck ? directChecked.add(m.key) : directChecked.delete(m.key));
+  renderDirectStats();
+}
+
+function renderDirectWeeklyTable() {
+  const table = document.getElementById('direct-weekly-table');
+  document.getElementById('direct-weekly-month-label').textContent = activeMonth ? formatMonth(activeMonth) : '';
+
+  const weeks = getDirectWeeklyData(directCampaigns, activeMonth);
+  if (!weeks.length) {
+    table.innerHTML = '<tbody><tr><td colspan="2" class="error-msg" style="padding:16px">Нет данных за этот месяц</td></tr></tbody>';
+    return;
+  }
+
+  const weekHeaders = weeks.map((w, i) =>
+    `<th><span class="direct-week-sup">${i + 1} неделя</span><br>${w.label}</th>`
+  ).join('');
+  const rows = DIRECT_METRICS.map(metric => {
+    const cells = weeks.map(w => {
+      const val = parseFloat(w[metric.key]) || 0;
+      return `<td>${metric.fmt(val)}</td>`;
+    }).join('');
+    return `<tr><td class="direct-metric-label">${metric.label}</td>${cells}</tr>`;
+  }).join('');
+
+  table.innerHTML = `<thead><tr><th></th>${weekHeaders}</tr></thead><tbody>${rows}</tbody>`;
+}
+
+function toggleDirectMetric(key, checkbox) {
+  if (checkbox.checked) directChecked.add(key);
+  else directChecked.delete(key);
+  renderDirectStats();
+}
+
+function setDirectPeriod(months, btn) {
+  directPeriod = months;
+  document.querySelectorAll('.direct-period-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderDirectStats();
+}
+
+function toggleDirectCampaign(campaign) {
+  if (directCampaigns.has(campaign)) {
+    if (directCampaigns.size === 1) return; // оставить хотя бы одну выбранную РК
+    directCampaigns.delete(campaign);
+  } else {
+    directCampaigns.add(campaign);
+  }
+  renderDirectStats();
+}
+
+// Сброс выбора кампаний к одной (по умолчанию — первая)
+function resetDirectCampaigns() {
+  directCampaigns.clear();
+  renderDirectStats(); // при пустом наборе renderDirectStats сам добавит первую кампанию
+}
+
+// Все листы одного бренда (без центров)
+const SHEET_BASES = ['positions', 'queries', 'ads', 'metrika_traffic', 'metrika_sources', 'metrika_adv', 'metrika_pages', 'pages_map', 'domains_map'];
+
+// Загружает один набор листов; suffix = '' или '_<центр>'
+async function loadSheetSet(suffix) {
+  const arr = await Promise.all(SHEET_BASES.map(n => fetchSheet(n + suffix).catch(() => [])));
+  const set = {};
+  SHEET_BASES.forEach((n, i) => { set[n] = arr[i]; });
+  return set;
+}
+
+// Листы бренда с центрами, которые лежат по центрам (суффикс _<центр>).
+// positions, ads, pages_map, domains_map — общие (один лист на всю клинику).
+const CENTER_BASES = ['queries', 'metrika_traffic', 'metrika_sources', 'metrika_adv', 'metrika_pages'];
+
+async function loadCenterBases(suffix) {
+  const arr = await Promise.all(CENTER_BASES.map(n => fetchSheet(n + suffix).catch(() => [])));
+  const set = {};
+  CENTER_BASES.forEach((n, i) => { set[n] = arr[i]; });
+  return set;
+}
+
+// Загружает данные активного бренда/центра с учётом режима «Все»
+async function loadActiveData() {
+  const b = BRANDS[activeBrand];
+  const direct_weekly = normalizeDirectRows(await fetchDirectSheet().catch(() => []));
+  if (!b.centers) {
+    return { ...await loadSheetSet(''), direct_weekly };
+  }
+
+  // Общие листы клиники (keys.so + справочники)
+  const [positions, ads, pages_map, domains_map] = await Promise.all([
+    fetchSheet('positions').catch(() => []),
+    fetchSheet('ads').catch(() => []),
+    fetchSheet('pages_map').catch(() => []),
+    fetchSheet('domains_map').catch(() => []),
+  ]);
+
+  if (activeCenter !== 'all') {
+    const center = await loadCenterBases('_' + activeCenter);
+    return { positions, ads, pages_map, domains_map, ...center, direct_weekly };
+  }
+
+  const sets = await Promise.all(b.centers.map(c => loadCenterBases('_' + c.key)));
+  return { ...aggregateCenters(positions, ads, sets, b), pages_map, domains_map, direct_weekly };
+}
+
+// Месяц-ключ строки Метрики (даты ISO)
+function metricMonthKey(r) { const d = new Date(r.date); return isNaN(d) ? r.date : formatMonth(d); }
+
+// Универсальная агрегация: группировка по месяцу + dimFields,
+// sumFields суммируются, wavgFields — средневзвешенные по визитам
+function aggSum(arrays, dimFields, sumFields, wavgFields) {
+  const map = new Map();
+  arrays.forEach(rows => rows.forEach(r => {
+    const key = metricMonthKey(r) + '|' + dimFields.map(f => r[f] || '').join('|');
+    let acc = map.get(key);
+    if (!acc) {
+      acc = { date: r.date, _w: 0 };
+      dimFields.forEach(f => acc[f] = r[f]);
+      sumFields.forEach(f => acc[f] = 0);
+      wavgFields.forEach(f => acc['_wsum_' + f] = 0);
+      map.set(key, acc);
+    }
+    const w = parseFloat(r.visits) || 0;
+    sumFields.forEach(f => acc[f] += parseFloat(r[f]) || 0);
+    wavgFields.forEach(f => acc['_wsum_' + f] += (parseFloat(r[f]) || 0) * w);
+    acc._w += w;
+  }));
+  return [...map.values()].map(acc => {
+    wavgFields.forEach(f => {
+      acc[f] = acc._w > 0 ? Math.round(acc['_wsum_' + f] / acc._w * 10) / 10 : 0;
+      delete acc['_wsum_' + f];
+    });
+    delete acc._w;
+    return acc;
+  });
+}
+
+// Сводит данные клиники в один набор для режима «Все».
+// positionsShared / adsShared — общие листы keys.so; sets — по центрам (queries, metrika_*, pages_map)
+function aggregateCenters(positionsShared, adsShared, sets, brand) {
+  const aggDomain = (brand.domain || '').replace(/^https?:\/\//, '');
+  const centerDomains = new Set(brand.centers.map(c => c.domain.replace(/^https?:\/\//, '')));
+  const posMonth = r => { const d = parseDate(r.date); return d && !isNaN(d) ? formatMonth(d) : null; };
+  const POS_NUM = ['top1', 'top3', 'top5', 'top10', 'top50', 'traffic', 'pages'];
+
+  // Позиции из общего листа:
+  //  • «наша» строка = сумма строк доменов центров (по одной на домен в месяц — дедуп дублей)
+  //  • конкуренты = сумма по каждому домену across все строки месяца
+  const ownMap = new Map();  // monthKey -> Map(centerDomain -> row)  (один ряд на домен центра)
+  const compMap = new Map(); // monthKey -> Map(domain -> aggRow)
+  const monthDate = new Map(); // monthKey -> date строки (для метки)
+  positionsShared.forEach(r => {
+    const mk = posMonth(r); if (!mk) return;
+    if (!monthDate.has(mk)) monthDate.set(mk, r.date);
+    if (centerDomains.has(r.domain)) {
+      let dm = ownMap.get(mk); if (!dm) { dm = new Map(); ownMap.set(mk, dm); }
+      dm.set(r.domain, r); // последний выигрывает — дубль-сиблинг из чужого экспорта не плюсуется
+    } else if (r.domain) {
+      let cm = compMap.get(mk); if (!cm) { cm = new Map(); compMap.set(mk, cm); }
+      let cr = cm.get(r.domain);
+      if (!cr) { cr = { date: r.date, domain: r.domain }; POS_NUM.forEach(k => cr[k] = 0); cm.set(r.domain, cr); }
+      POS_NUM.forEach(k => { cr[k] += parseInt(r[k]) || 0; });
+    }
+  });
+  const positions = [];
+  ownMap.forEach((dm, mk) => {
+    const own = { date: monthDate.get(mk), domain: aggDomain };
+    POS_NUM.forEach(k => own[k] = 0);
+    dm.forEach(r => POS_NUM.forEach(k => { own[k] += parseInt(r[k]) || 0; }));
+    positions.push(own);
+  });
+  compMap.forEach(cm => cm.forEach(cr => positions.push(cr)));
+
+  // Реклама конкурентов: сумма по доменам со всего общего листа
+  const adsMap = new Map(); // monthKey|domain -> row
+  adsShared.forEach(r => {
+    const mk = posMonth(r); if (!mk || !r.domain) return;
+    const key = mk + '|' + r.domain;
+    let ar = adsMap.get(key);
+    if (!ar) { ar = { date: r.date, domain: r.domain, ads: 0, queries: 0, traffic: 0, _budget: 0 }; adsMap.set(key, ar); }
+    ar.ads += parseInt(r.ads) || 0;
+    ar.queries += parseInt(r.queries) || 0;
+    ar.traffic += parseInt(r.traffic) || 0;
+    ar._budget += parseBudget(r.budget);
+  });
+  const ads = [...adsMap.values()].map(ar => { ar.budget = ar._budget ? String(ar._budget) : ''; delete ar._budget; return ar; });
+
+  return {
+    positions,
+    ads,
+    queries: sets.flatMap(s => s.queries),                                   // объединяем
+    metrika_traffic: aggSum(sets.map(s => s.metrika_traffic), [], ['visits', 'pageviews', 'users'], ['bounceRate', 'avgDuration']),
+    metrika_sources: aggSum(sets.map(s => s.metrika_sources), ['source', 'parent'], ['visits'], []),
+    metrika_adv: aggSum(sets.map(s => s.metrika_adv), ['advSystem'], ['visits', 'users'], ['bounceRate', 'avgDuration']),
+    metrika_pages: aggSum(sets.map(s => s.metrika_pages), ['page'], ['visits'], ['bounceRate', 'avgDuration']),
+  };
+}
 
 async function init() {
   try {
-    const [positions, queries, ads, metrika_traffic, metrika_sources, metrika_adv, metrika_pages, pages_map] = await Promise.all([
-      fetchSheet('positions'),
-      fetchSheet('queries'),
-      fetchSheet('ads'),
-      fetchSheet('metrika_traffic').catch(() => []),
-      fetchSheet('metrika_sources').catch(() => []),
-      fetchSheet('metrika_adv').catch(() => []),
-      fetchSheet('metrika_pages').catch(() => []),
-      fetchSheet('pages_map').catch(() => []),
-    ]);
-
-    const hasData = positions.length > 0;
-    const base = hasData ? { positions, queries, ads } : MOCK_DATA;
-    allData = { ...base, metrika_traffic, metrika_sources, metrika_adv, metrika_pages, pages_map };
+    allData = await loadActiveData();
 
     const months = getMonths(allData.positions);
     if (!months.length) {
-      setStatus('Нет данных', false);
+      setStatus('Нет данных в таблице', false);
       return;
     }
 
     activeMonth = months[months.length - 1];
-    setStatus(hasData ? 'Данные обновлены' : 'Демо-данные', false);
+    setStatus('Данные обновлены', false);
     renderAll();
   } catch (e) {
     console.error(e);
-    allData = { ...MOCK_DATA, metrika_traffic: [], metrika_sources: [], metrika_adv: [], metrika_pages: [], pages_map: [] };
-    const months = getMonths(allData.positions);
-    activeMonth = months[months.length - 1];
-    setStatus('Демо-данные', false);
-    renderAll();
+    setStatus('Ошибка загрузки данных', false);
   }
 }
 
+renderCenterTabs();
 init();
 </script>
 <button class="back-to-top" id="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Наверх">↑</button>
@@ -1552,6 +2602,7 @@ init();
   window.addEventListener('scroll', () => {
     _btn.classList.toggle('visible', window.scrollY > 300);
     _wrap.classList.toggle('scrolled', window.scrollY > 60);
+    updateSectionNavActive();
   });
 </script>
 </body>
