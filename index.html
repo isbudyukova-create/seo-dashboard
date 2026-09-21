@@ -711,6 +711,8 @@ tr.row-own td { background: rgba(61,61,200,0.06) !important; }
             <button class="pos-btn" onclick="filterPos(1,this)">Топ 1</button>
             <button class="pos-btn" onclick="filterPos(2,this)">Топ 2</button>
             <button class="pos-btn" onclick="filterPos(3,this)">Топ 3</button>
+            <button class="pos-btn" onclick="filterPos(4,this)">Топ 4</button>
+            <button class="pos-btn" onclick="filterPos(5,this)">Топ 5</button>
           </div>
         </div>
         <span class="queries-count" id="queries-count"></span>
@@ -1134,11 +1136,11 @@ function parseBudget(s) {
   return parseInt(s.replace(/[^\d]/g, '')) || 0;
 }
 
-// ── Лист positions: заголовки → ключи в коде ──────────────────
+// ── Заголовки листов keys.so → ключи в коде ───────────────────
 // Русские названия — актуальные, английские остались для таблиц,
 // которые ещё не переименованы (traffic_2 — второй traffic в старой шапке).
-// Колонки, которых здесь нет (По видимости, Видимость и пр.), дашбордом
-// не используются и остаются в строке под своими именами.
+// Колонки, которых в карте нет (По видимости, Документов найдено и пр.),
+// дашбордом не используются и остаются в строке под своими именами.
 const POS_HEADER_MAP = {
   'дата': 'date',                   'date': 'date',
   'домен': 'domain',                'domain': 'domain',
@@ -1155,15 +1157,26 @@ const POS_HEADER_MAP = {
   'бюджет в контексте': 'budget',   'budget': 'budget',
 };
 
+// Лист queries: выгрузка keys.so `domain.organic.keys` целиком.
+// Используются только запрос, страница, позиция, частотность и дата.
+const QUERIES_HEADER_MAP = {
+  'дата': 'date',                 'дата выдачи': 'date',      'date': 'date',
+  'запрос': 'query',              'query': 'query',
+  'страница': 'page',             'page': 'page',
+  'позиция': 'position',          'position': 'position',
+  'базовая частотность': 'frequency', 'frequency': 'frequency',
+};
+
 function normalizeHeader(h) {
   return (h || '').trim().toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ');
 }
 
-function normalizePositions(rows) {
+// Переименовывает заголовки строк листа по карте map
+function normalizeRows(rows, map) {
   return rows.map(r => {
     const out = {};
     Object.keys(r).forEach(k => {
-      const key = POS_HEADER_MAP[normalizeHeader(k)] || k;
+      const key = map[normalizeHeader(k)] || k;
       // непустое значение не перетираем пустым (если шапка задвоена)
       if (!out[key]) out[key] = r[k];
     });
@@ -2515,7 +2528,8 @@ async function loadSheetSet(suffix) {
   const arr = await Promise.all(SHEET_BASES.map(n => fetchSheet(n + suffix).catch(() => [])));
   const set = {};
   SHEET_BASES.forEach((n, i) => { set[n] = arr[i]; });
-  set.positions = normalizePositions(set.positions);
+  set.positions = normalizeRows(set.positions, POS_HEADER_MAP);
+  set.queries = normalizeRows(set.queries, QUERIES_HEADER_MAP);
   set.ads = adsFromPositions(set.positions);
   return set;
 }
@@ -2529,6 +2543,7 @@ async function loadCenterBases(suffix) {
   const arr = await Promise.all(CENTER_BASES.map(n => fetchSheet(n + suffix).catch(() => [])));
   const set = {};
   CENTER_BASES.forEach((n, i) => { set[n] = arr[i]; });
+  set.queries = normalizeRows(set.queries, QUERIES_HEADER_MAP);
   return set;
 }
 
@@ -2546,7 +2561,7 @@ async function loadActiveData() {
     fetchSheet('pages_map').catch(() => []),
     fetchSheet('domains_map').catch(() => []),
   ]);
-  const positions = normalizePositions(positionsRaw);
+  const positions = normalizeRows(positionsRaw, POS_HEADER_MAP);
   const ads = adsFromPositions(positions);
 
   if (activeCenter !== 'all') {
