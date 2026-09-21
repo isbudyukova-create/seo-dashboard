@@ -962,7 +962,6 @@ function isOwnDomain(domain) {
 const DIRECT_SHEET_ID = '1pKM-243Fol0oPcbcyD6fTQiUBEuXQVKzWGrjMMjOMVE';
 let activeBrand = 0;
 let activeCenter = 'all'; // для брендов с центрами: 'all' (агрегат) или key центра
-const SHEETS = { positions: 'positions', queries: 'queries', ads: 'ads' };
 
 let allData = { positions: [], queries: [], ads: [], metrika_traffic: [], metrika_sources: [], metrika_adv: [], metrika_pages: [], pages_map: [], domains_map: [], direct_weekly: [] };
 let activeMonth = null;
@@ -1093,10 +1092,22 @@ async function fetchDirectSheet() {
   return parseCSV(text);
 }
 
+// Одноимённые колонки: второе и последующие вхождения получают суффикс _2, _3…
+// Нужно для листа positions, где traffic встречается дважды: органика и реклама.
+function dedupHeaders(headers) {
+  const seen = new Map();
+  return headers.map(h => {
+    if (!h) return h;
+    const n = (seen.get(h) || 0) + 1;
+    seen.set(h, n);
+    return n === 1 ? h : `${h}_${n}`;
+  });
+}
+
 function parseCSV(text) {
   const lines = text.trim().split('\n');
   if (lines.length < 2) return [];
-  const headers = splitCSVLine(lines[0]).map(h => h.replace(/^"|"$/g, '').trim());
+  const headers = dedupHeaders(splitCSVLine(lines[0]).map(h => h.replace(/^"|"$/g, '').trim()));
   return lines.slice(1).map(line => {
     const vals = splitCSVLine(line);
     const obj = {};
@@ -1121,6 +1132,66 @@ function splitCSVLine(line) {
 function parseBudget(s) {
   if (!s) return 0;
   return parseInt(s.replace(/[^\d]/g, '')) || 0;
+}
+
+// ── Лист positions: заголовки → ключи в коде ──────────────────
+// Русские названия — актуальные, английские остались для таблиц,
+// которые ещё не переименованы (traffic_2 — второй traffic в старой шапке).
+// Колонки, которых здесь нет (По видимости, Видимость и пр.), дашбордом
+// не используются и остаются в строке под своими именами.
+const POS_HEADER_MAP = {
+  'дата': 'date',                   'date': 'date',
+  'домен': 'domain',                'domain': 'domain',
+  'в топ 1': 'top1',                'top1': 'top1',
+  'в топ 3': 'top3',                'top3': 'top3',
+  'в топ 5': 'top5',                'top5': 'top5',
+  'в топ 10': 'top10',              'top10': 'top10',
+  'в топ 50': 'top50',              'top50': 'top50',
+  'страниц': 'pages',               'pages': 'pages',
+  'трафик': 'traffic',              'traffic': 'traffic',
+  'объявлений': 'ads',              'ads': 'ads',
+  'запросов в контексте': 'adsQueries', 'queries': 'adsQueries',
+  'трафик в контексте': 'adsTraffic',   'traffic_2': 'adsTraffic',
+  'бюджет в контексте': 'budget',   'budget': 'budget',
+};
+
+function normalizeHeader(h) {
+  return (h || '').trim().toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ');
+}
+
+function normalizePositions(rows) {
+  return rows.map(r => {
+    const out = {};
+    Object.keys(r).forEach(k => {
+      const key = POS_HEADER_MAP[normalizeHeader(k)] || k;
+      // непустое значение не перетираем пустым (если шапка задвоена)
+      if (!out[key]) out[key] = r[k];
+    });
+    return out;
+  });
+}
+
+// ── Реклама конкурентов ───────────────────────────────────────
+// Лежит в правой части листа `positions`: Объявлений / Запросов в контексте /
+// Трафик в контексте / Бюджет в контексте.
+function adsFromPositions(rows) {
+  return rows
+    .map(r => ({
+      date: r.date,
+      domain: r.domain,
+      ads: r.ads || '',
+      queries: r.adsQueries || '',
+      traffic: r.adsTraffic || '',
+      budget: r.budget || '',
+    }))
+    .filter(r => r.domain && (r.ads || r.queries || r.traffic || r.budget));
+}
+
+// Есть ли в строке positions хоть один органический показатель.
+// Отсекает строки, попавшие в лист только ради рекламных колонок.
+const POS_ORG_FIELDS = ['top1', 'top3', 'top5', 'top10', 'top50', 'traffic', 'pages'];
+function hasOrganicData(r) {
+  return POS_ORG_FIELDS.some(f => (r[f] || '') !== '');
 }
 
 function parseDate(s) {
@@ -1286,7 +1357,7 @@ function renderOrgCompetitors() {
   // только в режиме «Все» (там «наша» строка и конкуренты сведены по всем центрам)
   if (activeCenterObj()) { section.style.display = 'none'; return; }
   const brandDomain = isAggregateView() ? currentDomain() : BRANDS[activeBrand].title;
-  const allRows = rowsForMonth(allData.positions, activeMonth).filter(r => r.domain);
+  const allRows = rowsForMonth(allData.positions, activeMonth).filter(r => r.domain && hasOrganicData(r));
   const tbody = document.getElementById('org-competitors-body');
   const countEl = document.getElementById('org-competitors-count');
   if (!allRows.length) { section.style.display = 'none'; return; }
@@ -1351,7 +1422,10 @@ function domainName(domain) {
 function brandRow(month) {
   const domain = currentDomain();
   const rows = rowsForMonth(allData.positions, month);
-  return rows.find(r => r.domain === domain) || null;
+  // строка только с рекламными колонками не должна перекрыть органическую
+  return rows.find(r => r.domain === domain && hasOrganicData(r))
+      || rows.find(r => r.domain === domain)
+      || null;
 }
 
 function renderMetrics(months) {
@@ -2432,19 +2506,23 @@ function resetDirectCampaigns() {
   renderDirectStats(); // при пустом наборе renderDirectStats сам добавит первую кампанию
 }
 
-// Все листы одного бренда (без центров)
-const SHEET_BASES = ['positions', 'queries', 'ads', 'metrika_traffic', 'metrika_sources', 'metrika_adv', 'metrika_pages', 'pages_map', 'domains_map'];
+// Все листы одного бренда (без центров).
+// Отдельного листа `ads` нет — реклама конкурентов лежит в `positions`.
+const SHEET_BASES = ['positions', 'queries', 'metrika_traffic', 'metrika_sources', 'metrika_adv', 'metrika_pages', 'pages_map', 'domains_map'];
 
 // Загружает один набор листов; suffix = '' или '_<центр>'
 async function loadSheetSet(suffix) {
   const arr = await Promise.all(SHEET_BASES.map(n => fetchSheet(n + suffix).catch(() => [])));
   const set = {};
   SHEET_BASES.forEach((n, i) => { set[n] = arr[i]; });
+  set.positions = normalizePositions(set.positions);
+  set.ads = adsFromPositions(set.positions);
   return set;
 }
 
 // Листы бренда с центрами, которые лежат по центрам (суффикс _<центр>).
-// positions, ads, pages_map, domains_map — общие (один лист на всю клинику).
+// positions (вместе с рекламой конкурентов), pages_map, domains_map — общие
+// (один лист на всю клинику).
 const CENTER_BASES = ['queries', 'metrika_traffic', 'metrika_sources', 'metrika_adv', 'metrika_pages'];
 
 async function loadCenterBases(suffix) {
@@ -2463,12 +2541,13 @@ async function loadActiveData() {
   }
 
   // Общие листы клиники (keys.so + справочники)
-  const [positions, ads, pages_map, domains_map] = await Promise.all([
+  const [positionsRaw, pages_map, domains_map] = await Promise.all([
     fetchSheet('positions').catch(() => []),
-    fetchSheet('ads').catch(() => []),
     fetchSheet('pages_map').catch(() => []),
     fetchSheet('domains_map').catch(() => []),
   ]);
+  const positions = normalizePositions(positionsRaw);
+  const ads = adsFromPositions(positions);
 
   if (activeCenter !== 'all') {
     const center = await loadCenterBases('_' + activeCenter);
@@ -2512,7 +2591,8 @@ function aggSum(arrays, dimFields, sumFields, wavgFields) {
 }
 
 // Сводит данные клиники в один набор для режима «Все».
-// positionsShared / adsShared — общие листы keys.so; sets — по центрам (queries, metrika_*, pages_map)
+// positionsShared — общий лист positions; adsShared — реклама, вынутая из него
+// через adsFromPositions(); sets — по центрам (queries, metrika_*, pages_map)
 function aggregateCenters(positionsShared, adsShared, sets, brand) {
   const aggDomain = (brand.domain || '').replace(/^https?:\/\//, '');
   const centerDomains = new Set(brand.centers.map(c => c.domain.replace(/^https?:\/\//, '')));
@@ -2526,7 +2606,7 @@ function aggregateCenters(positionsShared, adsShared, sets, brand) {
   const compMap = new Map(); // monthKey -> Map(domain -> aggRow)
   const monthDate = new Map(); // monthKey -> date строки (для метки)
   positionsShared.forEach(r => {
-    const mk = posMonth(r); if (!mk) return;
+    const mk = posMonth(r); if (!mk || !hasOrganicData(r)) return;
     if (!monthDate.has(mk)) monthDate.set(mk, r.date);
     if (centerDomains.has(r.domain)) {
       let dm = ownMap.get(mk); if (!dm) { dm = new Map(); ownMap.set(mk, dm); }
