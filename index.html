@@ -1621,6 +1621,12 @@ function renderCharts(months) {
   });
 }
 
+// «Топ 1/2/3» — ровно эта позиция; «Топ 5» — позиции 4 и 5 (отдельной кнопки «Топ 4» нет).
+// В листах queries бывают только позиции 1–5, поэтому «Топ 5» как 1–5 совпал бы со «Все».
+function matchesPosFilter(pos) {
+  return posFilter === 5 ? (pos === 4 || pos === 5) : pos === posFilter;
+}
+
 function filterPos(p, btn) {
   posFilter = p;
   showAll = false;
@@ -1652,7 +1658,7 @@ function renderQueries() {
   section.style.display = '';
 
   let rows = rowsForMonth(allData.queries, activeMonth);
-  if (posFilter > 0) rows = rows.filter(r => parseInt(r.position) === posFilter);
+  if (posFilter > 0) rows = rows.filter(r => matchesPosFilter(parseInt(r.position)));
   rows.sort((a, b) => (parseInt(a.position)||9) - (parseInt(b.position)||9) || (parseInt(b.frequency)||0) - (parseInt(a.frequency)||0));
 
   document.getElementById('queries-count').textContent = `${rows.length} запросов`;
