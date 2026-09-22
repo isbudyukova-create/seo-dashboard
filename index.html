@@ -383,6 +383,9 @@ body {
 .direct-pivot-table td.direct-metric-label { text-align: left; }
 .direct-pivot-table tbody tr:last-child td { border-bottom: none; }
 .direct-pivot-table tbody tr:hover td { background: var(--surface2); }
+.direct-pivot-table td.direct-empty { color: var(--muted); }
+.direct-pivot-table td.error-msg { padding: 16px; }
+.direct-metric-toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .direct-cb {
   appearance: none;
   -webkit-appearance: none;
@@ -394,6 +397,8 @@ body {
   position: relative;
   transition: background .15s, border-color .15s;
 }
+/* --cb-color задаётся из JS = цвет линии метрики на графике; без него — accent */
+.direct-cb:checked { background: var(--cb-color, var(--accent)); border-color: var(--cb-color, var(--accent)); }
 .direct-cb:checked::after {
   content: '';
   position: absolute;
@@ -486,6 +491,12 @@ body {
 .page-cat-btn[data-cat="articles"].active  { background: #e6f4f4; color: #1a7070; }
 .page-cat-btn[data-cat="staff"].active     { background: #fdecf2; color: #c2185b; }
 .cat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.page-cat-btn[data-cat="services"]  .cat-dot { background: var(--accent); }
+.page-cat-btn[data-cat="staff"]     .cat-dot { background: #d6336c; }
+.page-cat-btn[data-cat="news"]      .cat-dot { background: #f0a500; }
+.page-cat-btn[data-cat="questions"] .cat-dot { background: #9b5de5; }
+.page-cat-btn[data-cat="contacts"]  .cat-dot { background: var(--green); }
+.page-cat-btn[data-cat="articles"]  .cat-dot { background: #2a8a8a; }
 .page-cat-reset {
   width: 26px; height: 26px; border-radius: 50%;
   border: 1px solid var(--border); background: transparent;
@@ -711,7 +722,6 @@ tr.row-own td { background: rgba(61,61,200,0.06) !important; }
             <button class="pos-btn" onclick="filterPos(1,this)">Топ 1</button>
             <button class="pos-btn" onclick="filterPos(2,this)">Топ 2</button>
             <button class="pos-btn" onclick="filterPos(3,this)">Топ 3</button>
-            <button class="pos-btn" onclick="filterPos(4,this)">Топ 4</button>
             <button class="pos-btn" onclick="filterPos(5,this)">Топ 5</button>
           </div>
         </div>
@@ -843,12 +853,12 @@ tr.row-own td { background: rgba(61,61,200,0.06) !important; }
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           <span class="queries-title">Топ страниц по визитам</span>
           <div class="page-cat-filter" id="page-cat-filter">
-            <button class="page-cat-btn" data-cat="services" onclick="togglePageCat('services',this)"><span class="cat-dot" style="background:#3d3dc8"></span>Услуги</button>
-            <button class="page-cat-btn" data-cat="staff" onclick="togglePageCat('staff',this)"><span class="cat-dot" style="background:#d6336c"></span>Врачи</button>
-            <button class="page-cat-btn" data-cat="news" onclick="togglePageCat('news',this)"><span class="cat-dot" style="background:#f0a500"></span>Новости</button>
-            <button class="page-cat-btn" data-cat="questions" onclick="togglePageCat('questions',this)"><span class="cat-dot" style="background:#9b5de5"></span>Вопросы</button>
-            <button class="page-cat-btn" data-cat="contacts" onclick="togglePageCat('contacts',this)"><span class="cat-dot" style="background:#1a7a45"></span>Контакты</button>
-            <button class="page-cat-btn" data-cat="articles" onclick="togglePageCat('articles',this)"><span class="cat-dot" style="background:#2a8a8a"></span>Статьи</button>
+            <button class="page-cat-btn" data-cat="services" onclick="togglePageCat('services',this)"><span class="cat-dot"></span>Услуги</button>
+            <button class="page-cat-btn" data-cat="staff" onclick="togglePageCat('staff',this)"><span class="cat-dot"></span>Врачи</button>
+            <button class="page-cat-btn" data-cat="news" onclick="togglePageCat('news',this)"><span class="cat-dot"></span>Новости</button>
+            <button class="page-cat-btn" data-cat="questions" onclick="togglePageCat('questions',this)"><span class="cat-dot"></span>Вопросы</button>
+            <button class="page-cat-btn" data-cat="contacts" onclick="togglePageCat('contacts',this)"><span class="cat-dot"></span>Контакты</button>
+            <button class="page-cat-btn" data-cat="articles" onclick="togglePageCat('articles',this)"><span class="cat-dot"></span>Статьи</button>
             <button class="page-cat-reset" onclick="resetPageCat()" title="Сбросить фильтр">↺</button>
           </div>
         </div>
@@ -965,7 +975,10 @@ const DIRECT_SHEET_ID = '1pKM-243Fol0oPcbcyD6fTQiUBEuXQVKzWGrjMMjOMVE';
 let activeBrand = 0;
 let activeCenter = 'all'; // для брендов с центрами: 'all' (агрегат) или key центра
 
-let allData = { positions: [], queries: [], ads: [], metrika_traffic: [], metrika_sources: [], metrika_adv: [], metrika_pages: [], pages_map: [], domains_map: [], direct_weekly: [] };
+let allData = emptyData();
+function emptyData() {
+  return { positions: [], queries: [], ads: [], metrika_traffic: [], metrika_sources: [], metrika_adv: [], metrika_pages: [], pages_map: [], domains_map: [], direct_weekly: [] };
+}
 let activeMonth = null;
 let posFilter = 0;
 let showAll = false;
@@ -991,8 +1004,15 @@ const DIRECT_METRICS = [
 ];
 const ROWS_DEFAULT = 15;
 
-function sheetUrl(name) {
-  return `https://docs.google.com/spreadsheets/d/${BRANDS[activeBrand].sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(name)}`;
+// Экранирование данных из таблиц перед вставкой в innerHTML: запросы,
+// домены, пути страниц (их задаёт любой посетитель сайта), названия кампаний
+const ESC_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+function esc(v) { return String(v ?? '').replace(/[&<>"']/g, c => ESC_MAP[c]); }
+// Ссылка только на http(s); javascript: и прочее превращаем в «#»
+function safeHref(u) { return /^https?:\/\//i.test(u || '') ? esc(u) : '#'; }
+
+function sheetUrl(sheetId, name) {
+  return `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(name)}`;
 }
 
 // ── Центры (мультисчётчиковые бренды, напр. Клиника) ─────────
@@ -1034,24 +1054,24 @@ function updateHeaderTitle() {
   document.getElementById('header-title').textContent = title;
 }
 
-async function switchCenter(key) {
-  if (key === activeCenter) return;
-  const savedMonthLabel = activeMonth ? formatMonth(activeMonth) : null;
-  activeCenter = key;
-  renderCenterTabs();
-  updateHeaderTitle();
+// Сброс фильтров и раскрытых таблиц при смене бренда или центра
+function resetViewState() {
   activeMonth = null;
   posFilter = 0;
   showAll = false;
   adsShowAll = false;
   orgShowAll = false;
   document.querySelectorAll('.pos-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
-  await init();
-  if (savedMonthLabel) {
-    const months = getAllMonths();
-    const found = months.find(m => formatMonth(m) === savedMonthLabel);
-    if (found) { activeMonth = found; renderMonthTabs(months); renderAll(); }
-  }
+}
+
+async function switchCenter(key) {
+  if (key === activeCenter) return;
+  const savedMonthLabel = activeMonth ? formatMonth(activeMonth) : null;
+  activeCenter = key;
+  resetViewState();
+  renderCenterTabs();
+  updateHeaderTitle();
+  await init(savedMonthLabel);
 }
 
 async function switchBrand(idx, btn) {
@@ -1061,37 +1081,56 @@ async function switchBrand(idx, btn) {
   activeCenter = 'all';
   document.querySelectorAll('#brand-switcher .brand-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
+  directCampaigns.clear();
+  resetViewState();
   renderCenterTabs();
   updateHeaderTitle();
-  activeMonth = null;
-  posFilter = 0;
-  showAll = false;
-  adsShowAll = false;
-  directCampaigns.clear();
-  document.querySelectorAll('.pos-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
-  await init();
-  // восстанавливаем месяц если такой есть у нового бренда
-  if (savedMonthLabel) {
-    const months = getAllMonths();
-    const found = months.find(m => formatMonth(m) === savedMonthLabel);
-    if (found) { activeMonth = found; renderMonthTabs(months); renderAll(); }
+  // месяц восстанавливается внутри init, если такой есть у нового бренда
+  await init(savedMonthLabel);
+}
+
+// Кэш листов на время сессии: повторное переключение на бренд или центр
+// не качает листы заново. Храним промис, чтобы одновременные запросы
+// одного листа не дублировались. Упавший запрос из кэша убираем.
+const sheetCache = new Map();
+function fetchCSV(url) {
+  if (!sheetCache.has(url)) {
+    const p = fetch(url)
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.text(); })
+      .then(parseCSV);
+    p.catch(() => sheetCache.delete(url));
+    sheetCache.set(url, p);
   }
+  return sheetCache.get(url);
 }
 
-async function fetchSheet(name) {
-  const r = await fetch(sheetUrl(name));
-  if (!r.ok) throw new Error(`HTTP ${r.status} — лист "${name}"`);
-  const text = await r.text();
-  return parseCSV(text);
-}
+// Google на запрос несуществующего листа отвечает 200 и отдаёт ПЕРВЫЙ лист
+// таблицы (обычно positions). Поэтому проверяем, что пришли колонки нужного
+// листа. Каждая группа — варианты одной колонки (рус./англ.), из группы
+// должна найтись хотя бы одна.
+const SHEET_REQUIRED = {
+  positions:       [['домен', 'domain']],
+  queries:         [['запрос', 'query']],
+  metrika_traffic: [['pageviews']],
+  metrika_sources: [['source']],
+  metrika_adv:     [['advsystem']],
+  metrika_pages:   [['page'], ['visits']],
+  pages_map:       [['path']],
+  domains_map:     [['name']],
+};
 
-async function fetchDirectSheet() {
-  const tab = BRANDS[activeBrand].directTab;
-  if (!tab) return [];
-  const url = `https://docs.google.com/spreadsheets/d/${DIRECT_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
-  const r = await fetch(url);
-  const text = await r.text();
-  return parseCSV(text);
+async function fetchSheet(sheetId, base, suffix = '') {
+  const name = base + suffix;
+  const rows = await fetchCSV(sheetUrl(sheetId, name));
+  const required = SHEET_REQUIRED[base];
+  if (required && rows.length) {
+    const cols = new Set(Object.keys(rows[0]).map(normalizeHeader));
+    if (!required.every(group => group.some(c => cols.has(c)))) {
+      console.warn(`Лист "${name}" не найден — Google вернул вместо него другой лист`);
+      return [];
+    }
+  }
+  return rows;
 }
 
 // Одноимённые колонки: второе и последующие вхождения получают суффикс _2, _3…
@@ -1210,11 +1249,12 @@ function hasOrganicData(r) {
 function parseDate(s) {
   if (!s) return null;
   s = s.trim();
-  // dd.mm.yyyy
-  if (/^\d{2}\.\d{2}\.\d{4}$/.test(s)) {
-    const [d, m, y] = s.split('.');
-    return new Date(`${y}-${m}-${d}`);
-  }
+  // dd.mm.yyyy и yyyy-mm-dd собираем в локальном поясе: new Date('yyyy-mm-dd')
+  // даёт полночь UTC, и западнее Гринвича 1-е число стало бы концом прошлого месяца
+  let m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+  if (m) return new Date(+m[3], +m[2] - 1, +m[1]);
+  m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
   return new Date(s);
 }
 
@@ -1224,17 +1264,43 @@ function formatMonth(d) {
   return `${months[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-function getMonths(rows) {
-  const dates = rows.map(r => parseDate(r.date)).filter(Boolean);
-  const unique = [...new Map(dates.map(d => [formatMonth(d), d])).values()];
-  return unique.sort((a, b) => a - b);
+// Месяц строки разбирается один раз и запоминается в самой строке:
+// _md — дата 1-го числа месяца, _mk — подпись «Май 2026» (ключ месяца)
+function rowMonth(r) {
+  if (r._mk === undefined) {
+    const d = parseDate(r.date);
+    const ok = d && !isNaN(d);
+    r._md = ok ? new Date(d.getFullYear(), d.getMonth(), 1) : null;
+    r._mk = ok ? formatMonth(r._md) : null;
+  }
+  return r._mk;
 }
 
+// Индекс «месяц → строки» для массива данных; строится один раз на массив
+const monthIndexCache = new WeakMap();
+function monthIndex(rows) {
+  let idx = monthIndexCache.get(rows);
+  if (!idx) {
+    idx = new Map();
+    rows.forEach(r => {
+      const k = rowMonth(r);
+      if (!k) return;
+      if (!idx.has(k)) idx.set(k, []);
+      idx.get(k).push(r);
+    });
+    monthIndexCache.set(rows, idx);
+  }
+  return idx;
+}
+
+function getMonths(rows) {
+  return [...monthIndex(rows).values()].map(list => list[0]._md).sort((a, b) => a - b);
+}
+
+// Возвращает копию: вызывающие функции сортируют результат на месте
 function rowsForMonth(rows, month) {
-  return rows.filter(r => {
-    const d = parseDate(r.date);
-    return d && formatMonth(d) === formatMonth(month);
-  });
+  if (!month) return [];
+  return (monthIndex(rows).get(formatMonth(month)) || []).slice();
 }
 
 function prevMonth(months, current) {
@@ -1292,11 +1358,9 @@ function selectMonth(label) {
 }
 
 function getAllMonths() {
-  const posMonths = getMonths(allData.positions);
-  const metMonths = getMonths(allData.metrika_traffic);
-  const directMonths = getMonths(allData.direct_weekly);
   const map = new Map();
-  [...posMonths, ...metMonths, ...directMonths].forEach(d => map.set(formatMonth(d), d));
+  [allData.positions, allData.metrika_traffic, allData.direct_weekly].forEach(rows =>
+    getMonths(rows).forEach(d => map.set(formatMonth(d), d)));
   return [...map.values()].sort((a, b) => a - b);
 }
 
@@ -1369,7 +1433,8 @@ function renderOrgCompetitors() {
   // Конкуренты общие для клиники: внутри отдельного центра не показываем,
   // только в режиме «Все» (там «наша» строка и конкуренты сведены по всем центрам)
   if (activeCenterObj()) { section.style.display = 'none'; return; }
-  const brandDomain = isAggregateView() ? currentDomain() : BRANDS[activeBrand].title;
+  // Своя строка — по реальному домену, как в brandRow(): у Здоровенка title не совпадает с доменом
+  const brandDomain = currentDomain();
   const allRows = rowsForMonth(allData.positions, activeMonth).filter(r => r.domain && hasOrganicData(r));
   const tbody = document.getElementById('org-competitors-body');
   const countEl = document.getElementById('org-competitors-count');
@@ -1400,7 +1465,7 @@ function renderOrgCompetitors() {
     const traffic = parseInt(r.traffic) || 0;
     return `<tr class="${isOwn ? 'row-own' : ''}">
       <td>${i + 1}</td>
-      <td><a href="https://${r.domain}" target="_blank" class="page-title-link">${domainName(r.domain)}</a></td>
+      <td><a href="https://${esc(r.domain)}" target="_blank" class="page-title-link">${esc(domainName(r.domain))}</a></td>
       <td>${parseInt(r.top1)||0}</td>
       <td>${parseInt(r.top5)||0}</td>
       <td>${parseInt(r.top10)||0}</td>
@@ -1427,9 +1492,17 @@ function toggleOrgShowAll() {
   renderOrgCompetitors();
 }
 
+// Словарь «домен → красивое имя» строится один раз на загруженный domains_map
+const domainNameCache = new WeakMap();
 function domainName(domain) {
-  const entry = allData.domains_map.find(r => r.domain === domain);
-  return (entry && entry.name) ? entry.name : domain;
+  const list = allData.domains_map;
+  let map = domainNameCache.get(list);
+  if (!map) {
+    map = new Map();
+    list.forEach(r => { if (r.domain && r.name && !map.has(r.domain)) map.set(r.domain, r.name); });
+    domainNameCache.set(list, map);
+  }
+  return map.get(domain) || domain;
 }
 
 function brandRow(month) {
@@ -1494,10 +1567,13 @@ function renderCharts(months) {
   const labelColor = '#7b7b9d';
 
   const labels = months.map(m => formatMonth(m));
-  const top1 = months.map(m => { const r = brandRow(m); return r ? (parseInt(r.top1)||0) : null; });
-  const top5 = months.map(m => { const r = brandRow(m); return r ? (parseInt(r.top5)||0) : null; });
-  const top10 = months.map(m => { const r = brandRow(m); return r ? (parseInt(r.top10)||0) : null; });
-  const traffic = months.map(m => { const r = brandRow(m); return r ? (parseInt(r.traffic)||0) : null; });
+  // Строку бренда за месяц ищем один раз, а не заново для каждой линии графика
+  const rowsByMonth = months.map(m => brandRow(m));
+  const series = key => rowsByMonth.map(r => r ? (parseInt(r[key])||0) : null);
+  const top1 = series('top1');
+  const top5 = series('top5');
+  const top10 = series('top10');
+  const traffic = series('traffic');
 
   if (posChart) posChart.destroy();
   posChart = new Chart(document.getElementById('posChart'), {
@@ -1581,8 +1657,11 @@ function renderQueries() {
   const months = getMonths(allData.queries);
   const prev = prevMonth(months, activeMonth);
   const prevRows = prev ? rowsForMonth(allData.queries, prev) : [];
+  // Прошлый месяц — словарём по запросу, а не поиском по всему списку на каждую строку
+  const prevByQuery = new Map();
+  prevRows.forEach(p => { const k = (p.query || '').toLowerCase(); if (!prevByQuery.has(k)) prevByQuery.set(k, p); });
 
-  const maxFreq = Math.max(...rows.map(r => parseInt(r.frequency)||0), 1);
+  const maxFreq = rows.reduce((mx, r) => Math.max(mx, parseInt(r.frequency)||0), 1);
   const display = showAll ? rows : rows.slice(0, ROWS_DEFAULT);
 
   const tbody = document.getElementById('queries-body');
@@ -1597,10 +1676,10 @@ function renderQueries() {
     const freq = parseInt(r.frequency) || 0;
     const pct = Math.round(freq / maxFreq * 100);
     const page = r.page || '';
-    const shortPage = page.replace('https://dental.sadkomed.ru', '').replace('https://zdorovenok.ru', '') || '/';
+    const shortPage = page.replace(/^https?:\/\/[^/]+/i, '') || '/'; // путь без домена — для любого бренда
     const posClass = pos === 1 ? 'pos-1' : pos === 2 ? 'pos-2' : 'pos-3';
 
-    const prevRow = prevRows.find(p => (p.query || '').toLowerCase() === (r.query || '').toLowerCase());
+    const prevRow = prevByQuery.get((r.query || '').toLowerCase());
     let changeBadge = '';
     if (!prevRow) {
       changeBadge = `<span class="query-change query-new">new</span>`;
@@ -1613,14 +1692,14 @@ function renderQueries() {
 
     return `<tr>
       <td><span class="pos-badge ${posClass}">${pos}</span></td>
-      <td><span class="query-text">${r.query || '—'}</span>${changeBadge}</td>
+      <td><span class="query-text">${esc(r.query || '—')}</span>${changeBadge}</td>
       <td>
         <div class="freq-bar-wrap">
           <span class="freq-num">${freq.toLocaleString('ru-RU')}</span>
           <div class="freq-bar-bg"><div class="freq-bar" style="width:${pct}%"></div></div>
         </div>
       </td>
-      <td><a href="${page}" target="_blank" class="query-link" title="${page}">${shortPage.substring(0,30)}${shortPage.length>30?'…':''}</a></td>
+      <td><a href="${safeHref(page)}" target="_blank" class="query-link" title="${esc(page)}">${esc(shortPage.substring(0,30))}${shortPage.length>30?'…':''}</a></td>
     </tr>`;
   }).join('');
 
@@ -1656,6 +1735,9 @@ function renderAds() {
   const months = getMonths(allData.ads);
   const prev = prevMonth(months, activeMonth);
   const prevRows = prev ? rowsForMonth(allData.ads, prev) : [];
+  const adsDomainKey = d => (d || '').split('—')[0].trim().toLowerCase();
+  const prevByDomain = new Map();
+  prevRows.forEach(p => { const k = adsDomainKey(p.domain); if (!prevByDomain.has(k)) prevByDomain.set(k, p); });
 
   const tbody = document.getElementById('ads-body');
   if (!rows.length) {
@@ -1668,7 +1750,7 @@ function renderAds() {
     const pct = Math.round(budget / maxBudget * 100);
     const budgetStr = budget ? budget.toLocaleString('ru-RU') + ' ₽' : '—';
     const domain = (r.domain || '').split('—')[0].trim();
-    const prevRow = prevRows.find(p => (p.domain || '').split('—')[0].trim().toLowerCase() === domain.toLowerCase());
+    const prevRow = prevByDomain.get(domain.toLowerCase());
 
     const adsVal = parseInt(r.ads) || 0;
     const trafficVal = parseInt(r.traffic) || 0;
@@ -1687,9 +1769,9 @@ function renderAds() {
 
     const isOwn = isOwnDomain(domain);
     return `<tr class="${isOwn ? 'row-own ' : ''}${!budget ? 'ads-row-empty' : ''}">
-      <td>${domain ? `<a href="https://${domain}" target="_blank" class="page-title-link">${domainName(domain)}</a>` : '—'}</td>
+      <td>${domain ? `<a href="https://${esc(domain)}" target="_blank" class="page-title-link">${esc(domainName(domain))}</a>` : '—'}</td>
       <td>${adsVal || '—'}${prevAds !== null ? adsDelta(adsVal, prevAds) : ''}</td>
-      <td>${r.queries || '—'}</td>
+      <td>${esc(r.queries || '—')}</td>
       <td>${trafficVal || '—'}${prevTraffic !== null ? adsDelta(trafficVal, prevTraffic) : ''}</td>
       <td>
         <div class="budget-cell">
@@ -1780,30 +1862,22 @@ function applyPageCatHighlight() {
 }
 
 // ── МЕТРИКА: хелперы ──────────────────────────────────────────
-function mRowsForMonth(rows, month) {
-  return rows.filter(r => {
-    const d = new Date(r.date);
-    return d && formatMonth(d) === formatMonth(month);
-  });
-}
-
 function mPrevYearMonth(month) {
   if (!month) return null;
   return new Date(month.getFullYear() - 1, month.getMonth(), 1);
 }
 
-function metrikaDelta(cur, prev, suffix = '', invert = false) {
+// fmt — форматер модуля разницы (напр. formatDuration для времени на сайте)
+function metrikaDelta(cur, prev, suffix = '', invert = false, fmt = null) {
   if (prev === null || prev === undefined) return '';
   const d = cur - prev;
   if (d === 0) return '';
   const positive = invert ? d < 0 : d > 0;
   const cls = positive ? 'query-up' : 'query-down';
   const arrow = d > 0 ? '↑' : '↓';
-  return ` <span class="query-change ${cls}">${arrow}${Math.abs(d).toLocaleString('ru-RU')}${suffix}</span>`;
-}
-
-function getUniqueMonths(rows) {
-  return [...new Map(rows.map(r => [formatMonth(new Date(r.date)), new Date(r.date)])).values()].sort((a, b) => a - b);
+  const abs = Math.abs(d);
+  const text = fmt ? fmt(abs) : abs.toLocaleString('ru-RU') + suffix;
+  return ` <span class="query-change ${cls}">${arrow}${text}</span>`;
 }
 
 function formatDuration(sec) {
@@ -1821,12 +1895,12 @@ function renderMetrikaTraffic() {
   if (!rows.length) { section.style.display = 'none'; return; }
   section.style.display = '';
 
-  const cur = mRowsForMonth(rows, activeMonth)[0];
-  const mMonths = getUniqueMonths(rows);
+  const cur = rowsForMonth(rows, activeMonth)[0];
+  const mMonths = getMonths(rows);
   const prevM = prevMonth(mMonths, activeMonth);
-  const prev = prevM ? mRowsForMonth(rows, prevM)[0] : null;
+  const prev = prevM ? rowsForMonth(rows, prevM)[0] : null;
   const prevYear = mPrevYearMonth(activeMonth);
-  const prevYearRow = prevYear ? rows.find(r => formatMonth(new Date(r.date)) === formatMonth(prevYear)) : null;
+  const prevYearRow = prevYear ? (rowsForMonth(rows, prevYear)[0] || null) : null;
 
   const metrics = [
     { label: 'Визиты', key: 'visits', suffix: '' },
@@ -1842,8 +1916,8 @@ function renderMetrikaTraffic() {
     const prevVal = prev ? (parseFloat(prev[m.key]) || 0) : null;
     const pyVal = prevYearRow ? (parseFloat(prevYearRow[m.key]) || 0) : null;
     const display = m.format ? m.format(val) : (m.round ? val.toFixed(1) : val.toLocaleString('ru-RU')) + m.suffix;
-    const d1 = prevVal !== null ? metrikaDelta(val, prevVal, m.suffix, m.invertDelta) : '';
-    const d2 = pyVal !== null ? `<span class="metric-yoy-hint">vs год назад ${metrikaDelta(val, pyVal, m.suffix, m.invertDelta)}</span>` : '';
+    const d1 = prevVal !== null ? metrikaDelta(val, prevVal, m.suffix, m.invertDelta, m.format) : '';
+    const d2 = pyVal !== null ? `<span class="metric-yoy-hint">vs год назад ${metrikaDelta(val, pyVal, m.suffix, m.invertDelta, m.format)}</span>` : '';
     return `<div class="metric-card">
       <div class="metric-card-label">${m.label}</div>
       <div class="metric-card-value">${display}</div>
@@ -1854,10 +1928,10 @@ function renderMetrikaTraffic() {
   // Графики — последние N месяцев до активного включительно, без нулевых
   const activeIdx = mMonths.findIndex(m => formatMonth(m) === formatMonth(activeMonth));
   const lineMonths = mMonths.slice(Math.max(0, activeIdx - (visitsPeriod - 1)), activeIdx + 1)
-    .filter(d => { const r = mRowsForMonth(rows, d)[0]; return r && (parseFloat(r.visits) || 0) > 0; });
+    .filter(d => { const r = rowsForMonth(rows, d)[0]; return r && (parseFloat(r.visits) || 0) > 0; });
   const labels = lineMonths.map(d => formatMonth(d));
-  const visits = lineMonths.map(d => { const r = mRowsForMonth(rows, d)[0]; return r ? parseFloat(r.visits) : null; });
-  const pageviews = lineMonths.map(d => { const r = mRowsForMonth(rows, d)[0]; return r ? parseFloat(r.pageviews) : null; });
+  const visits = lineMonths.map(d => { const r = rowsForMonth(rows, d)[0]; return r ? parseFloat(r.visits) : null; });
+  const pageviews = lineMonths.map(d => { const r = rowsForMonth(rows, d)[0]; return r ? parseFloat(r.pageviews) : null; });
   const gridColor = '#e2e2f0', labelColor = '#7b7b9d';
   const chartOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: datalabelsConfig(labels.length) }, scales: { x: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11, family: 'Golos Text' } } }, y: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11, family: 'Golos Text' } } } }, layout: { padding: { top: labels.length <= 3 ? 20 : 0 } } };
 
@@ -1894,7 +1968,7 @@ function renderMetrikaTraffic() {
 
   const getVal = (month) => {
     if (!month) return null;
-    const r = mRowsForMonth(rows, month)[0];
+    const r = rowsForMonth(rows, month)[0];
     return r ? (parseFloat(r.visits) || 0) : null;
   };
 
@@ -1985,7 +2059,7 @@ const SRC_ICONS = {
 };
 
 function renderMetrikaSources() {
-  const allRows = mRowsForMonth(allData.metrika_sources, activeMonth);
+  const allRows = rowsForMonth(allData.metrika_sources, activeMonth);
   const section = document.getElementById('section-metrika-sources');
   const tbody = document.getElementById('metrika-sources-body');
   if (!allRows.length) { section.style.display = 'none'; return; }
@@ -2012,10 +2086,10 @@ function renderMetrikaSources() {
     const iconSrc = SRC_ICONS[r.source];
     const iconHtml = iconSrc ? `<img class="src-icon" src="${iconSrc}" alt="">` : '<span class="src-icon"></span>';
     const toggleSlot = hasChildren
-      ? `<button class="src-toggle" onclick="toggleSrcChildren(this,'${r.source.replace(/'/g,"\\'")}')">▶</button>`
+      ? `<button class="src-toggle" data-source="${esc(r.source)}" onclick="toggleSrcChildren(this)">▶</button>`
       : '';
     html.push(`<tr>
-      <td><div class="src-cell"><span class="src-toggle-wrap">${toggleSlot}</span>${iconHtml}${r.source || '—'}</div></td>
+      <td><div class="src-cell"><span class="src-toggle-wrap">${toggleSlot}</span>${iconHtml}${esc(r.source || '—')}</div></td>
       <td>
         <div class="freq-bar-wrap">
           <span class="freq-num">${v.toLocaleString('ru-RU')}</span>
@@ -2031,8 +2105,8 @@ function renderMetrikaSources() {
         const cv = parseFloat(c.visits) || 0;
         const cpct = v ? Math.round(cv / v * 100) : 0;
         const cbar = Math.round(cv / maxChild * 100);
-        html.push(`<tr class="src-child-row" data-parent="${r.source}">
-          <td><div class="src-cell"><span class="src-toggle-wrap"></span>${childIconHtml(c.source)}${c.source || '—'}</div></td>
+        html.push(`<tr class="src-child-row" data-parent="${esc(r.source)}">
+          <td><div class="src-cell"><span class="src-toggle-wrap"></span>${childIconHtml(c.source)}${esc(c.source || '—')}</div></td>
           <td>
             <div class="freq-bar-wrap">
               <span class="freq-num">${cv.toLocaleString('ru-RU')}</span>
@@ -2047,23 +2121,24 @@ function renderMetrikaSources() {
   tbody.innerHTML = html.join('');
 }
 
-function toggleSrcChildren(btn, sourceKey) {
+function toggleSrcChildren(btn) {
   btn.classList.toggle('expanded');
-  const rows = document.querySelectorAll(`#metrika-sources-body .src-child-row[data-parent="${CSS.escape(sourceKey)}"]`);
+  const rows = document.querySelectorAll(`#metrika-sources-body .src-child-row[data-parent="${CSS.escape(btn.dataset.source)}"]`);
   rows.forEach(r => r.classList.toggle('visible'));
 }
 
 // ── МЕТРИКА: Рекламные системы ───────────────────────────────
 function renderMetrikaAdv() {
-  const rows = mRowsForMonth(allData.metrika_adv, activeMonth);
+  const rows = rowsForMonth(allData.metrika_adv, activeMonth);
   const section = document.getElementById('section-metrika-adv');
   const tbody = document.getElementById('metrika-adv-body');
   if (!rows.length) { section.style.display = 'none'; return; }
   section.style.display = '';
 
-  const mMonths = getUniqueMonths(allData.metrika_adv);
+  const mMonths = getMonths(allData.metrika_adv);
   const prevM = prevMonth(mMonths, activeMonth);
-  const prevRows = prevM ? mRowsForMonth(allData.metrika_adv, prevM) : [];
+  const prevRows = prevM ? rowsForMonth(allData.metrika_adv, prevM) : [];
+  const prevBySystem = new Map(prevRows.map(p => [p.advSystem, p]));
 
   rows.sort((a, b) => (parseFloat(b.visits)||0) - (parseFloat(a.visits)||0));
 
@@ -2083,11 +2158,11 @@ function renderMetrikaAdv() {
   }
 
   tbody.innerHTML = rows.map(r => {
-    const prev = prevRows.find(p => p.advSystem === r.advSystem);
+    const prev = prevBySystem.get(r.advSystem);
     const v = parseFloat(r.visits) || 0;
     const prevV = prev ? (parseFloat(prev.visits) || 0) : null;
     return `<tr>
-      <td><div class="adv-system-cell">${getAdvIcon(r.advSystem)}${r.advSystem || '—'}</div></td>
+      <td><div class="adv-system-cell">${getAdvIcon(r.advSystem)}${esc(r.advSystem || '—')}</div></td>
       <td>${v.toLocaleString('ru-RU')}${prevV !== null ? metrikaDelta(v, prevV) : ''}</td>
       <td>${isNaN(parseFloat(r.users)) ? '—' : parseFloat(r.users).toLocaleString('ru-RU')}</td>
       <td>${isNaN(parseFloat(r.bounceRate)) ? '—' : parseFloat(r.bounceRate).toFixed(1) + '%'}</td>
@@ -2098,15 +2173,15 @@ function renderMetrikaAdv() {
 
 // ── МЕТРИКА: Популярные страницы ─────────────────────────────
 function renderMetrikaPages() {
-  const rows = mRowsForMonth(allData.metrika_pages, activeMonth);
+  const rows = rowsForMonth(allData.metrika_pages, activeMonth);
   const section = document.getElementById('section-metrika-pages');
   const tbody = document.getElementById('metrika-pages-body');
   if (!rows.length) { section.style.display = 'none'; return; }
   section.style.display = '';
 
-  const mMonths = getUniqueMonths(allData.metrika_pages);
+  const mMonths = getMonths(allData.metrika_pages);
   const prevM = prevMonth(mMonths, activeMonth);
-  const prevRows = prevM ? mRowsForMonth(allData.metrika_pages, prevM) : [];
+  const prevRows = prevM ? rowsForMonth(allData.metrika_pages, prevM) : [];
 
   // Маппинг path → title
   const pageMap = {};
@@ -2142,9 +2217,10 @@ function renderMetrikaPages() {
     btn.classList.toggle('active', activeCats.has(cat));
   });
 
-  // Строим рейтинг предыдущего месяца: path → rank (1-based)
-  const prevRankMap = {};
-  prevRows.forEach((r, i) => { if (r.page) prevRankMap[r.page] = i + 1; });
+  // Рейтинг предыдущего месяца: страница → место (1-based) по убыванию визитов
+  prevRows.sort((a, b) => (parseFloat(b.visits)||0) - (parseFloat(a.visits)||0));
+  const prevRankMap = new Map();
+  prevRows.forEach((r, i) => { if (r.page && !prevRankMap.has(r.page)) prevRankMap.set(r.page, i + 1); });
 
   tbody.innerHTML = rows.map((r, i) => {
     const path = r.page || '/';
@@ -2152,21 +2228,21 @@ function renderMetrikaPages() {
     const url = domain + path;
     const v = parseFloat(r.visits) || 0;
     const curRank = i + 1;
-    const isNew = !(path in prevRankMap) && prevRows.length > 0;
+    const isNew = !prevRankMap.has(path) && prevRows.length > 0;
 
     let changeBadge = '';
     if (isNew) {
       changeBadge = `<span class="query-change query-new">new</span>`;
-    } else if (path in prevRankMap) {
-      const delta = prevRankMap[path] - curRank; // + = поднялась, - = упала
+    } else if (prevRankMap.has(path)) {
+      const delta = prevRankMap.get(path) - curRank; // + = поднялась, - = упала
       if (delta > 0) changeBadge = `<span class="query-change query-up">↑${delta}</span>`;
       else if (delta < 0) changeBadge = `<span class="query-change query-down">↓${Math.abs(delta)}</span>`;
     }
 
-    return `<tr data-path="${path}">
+    return `<tr data-path="${esc(path)}">
       <td class="row-num">${curRank}</td>
       <td>
-        <a href="${url}" target="_blank" class="page-title-link">${title}</a>
+        <a href="${safeHref(url)}" target="_blank" class="page-title-link">${esc(title)}</a>
         ${changeBadge}
       </td>
       <td>${v.toLocaleString('ru-RU')}</td>
@@ -2282,17 +2358,13 @@ function aggregateDirectRows(rows) {
 }
 
 function aggregateDirectByMonth(campaigns, months) {
-  return months.map(month => {
-    const rows = allData.direct_weekly.filter(r =>
-      campaigns.has(r.campaign) && formatMonth(parseDate(r.date)) === formatMonth(month)
-    );
-    return aggregateDirectRows(rows);
-  });
+  return months.map(month =>
+    aggregateDirectRows(rowsForMonth(allData.direct_weekly, month).filter(r => campaigns.has(r.campaign))));
 }
 
 function getDirectWeeklyData(campaigns, month) {
-  const rows = allData.direct_weekly
-    .filter(r => campaigns.has(r.campaign) && formatMonth(parseDate(r.date)) === formatMonth(month))
+  const rows = rowsForMonth(allData.direct_weekly, month)
+    .filter(r => campaigns.has(r.campaign))
     .sort((a, b) => parseDate(a.date) - parseDate(b.date));
   if (!rows.length) return [];
   const monthNames = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
@@ -2334,7 +2406,7 @@ function renderDirectStats() {
 
   // Табы кампаний (мультивыбор) + сброс, если выбрано больше одной
   const tabsHtml = campaigns.map(c =>
-    `<button class="direct-campaign-tab${directCampaigns.has(c) ? ' active' : ''}" onclick="toggleDirectCampaign(${JSON.stringify(c).replace(/"/g,'&quot;')})">${c}</button>`
+    `<button class="direct-campaign-tab${directCampaigns.has(c) ? ' active' : ''}" data-campaign="${esc(c)}" onclick="toggleDirectCampaign(this.dataset.campaign)">${esc(c)}</button>`
   ).join('');
   const resetHtml = directCampaigns.size > 1
     ? `<button class="page-cat-reset" onclick="resetDirectCampaigns()" title="Сбросить выбор кампаний">↺</button>`
@@ -2342,12 +2414,10 @@ function renderDirectStats() {
   document.getElementById('direct-campaign-tabs').innerHTML = tabsHtml + resetHtml;
 
   // Конечный месяц: активный (если в нём есть данные Директа), иначе последний с данными
-  const allM = getAllMonths();
-  const directMonths = allM.filter(m =>
-    allData.direct_weekly.some(r => formatMonth(parseDate(r.date)) === formatMonth(m))
-  );
+  const directMonths = getMonths(allData.direct_weekly);
   const activeIdx = directMonths.findIndex(m => formatMonth(m) === formatMonth(activeMonth));
   const endMonth  = activeIdx >= 0 ? directMonths[activeIdx] : (directMonths[directMonths.length - 1] || activeMonth);
+  if (!endMonth) { section.style.display = 'none'; header.style.display = 'none'; return; }
 
   // Календарный диапазон: количество = выбранному периоду (3/6/12), минимум 3
   const count = Math.max(3, directPeriod);
@@ -2433,16 +2503,15 @@ function renderDirectMonthlyTable(months, monthlyData) {
   const rows = DIRECT_METRICS.map(metric => {
     const checked = directChecked.has(metric.key);
     const cells = monthlyData.map(data => {
-      if (!data) return `<td style="color:var(--muted)">—</td>`;
+      if (!data) return `<td class="direct-empty">—</td>`;
       return `<td>${metric.fmt(data[metric.key] || 0)}</td>`;
     }).join('');
     return `<tr>
       <td class="direct-metric-label">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <label class="direct-metric-toggle">
           <input type="checkbox" class="direct-cb" ${checked ? 'checked' : ''}
-            style="${checked ? `background:${metric.color};border-color:${metric.color}` : ''}"
             data-color="${metric.color}"
-            onchange="this.style.background=this.checked?this.dataset.color:'';this.style.borderColor=this.checked?this.dataset.color:'';toggleDirectMetric('${metric.key}',this)">
+            onchange="toggleDirectMetric('${metric.key}',this)">
           <span>${metric.label}</span>
         </label>
       </td>
@@ -2453,15 +2522,14 @@ function renderDirectMonthlyTable(months, monthlyData) {
   const allChecked = DIRECT_METRICS.every(m => directChecked.has(m.key));
   const selectAllCb = `<input type="checkbox" class="direct-cb" id="direct-cb-all"
     ${allChecked ? 'checked' : ''}
-    style="${allChecked ? `background:var(--accent);border-color:var(--accent)` : ''}"
     onchange="toggleAllDirectMetrics(this)">`;
   table.innerHTML = `<thead><tr><th>${selectAllCb}</th>${headerCells}</tr></thead><tbody>${rows}</tbody>`;
+  // Цвет отмеченного чекбокса = цвет линии метрики на графике (см. .direct-cb:checked)
+  table.querySelectorAll('.direct-cb[data-color]').forEach(cb => cb.style.setProperty('--cb-color', cb.dataset.color));
 }
 
 function toggleAllDirectMetrics(checkbox) {
   const toCheck = checkbox.checked;
-  checkbox.style.background    = toCheck ? 'var(--accent)' : '';
-  checkbox.style.borderColor   = toCheck ? 'var(--accent)' : '';
   DIRECT_METRICS.forEach(m => toCheck ? directChecked.add(m.key) : directChecked.delete(m.key));
   renderDirectStats();
 }
@@ -2472,7 +2540,7 @@ function renderDirectWeeklyTable() {
 
   const weeks = getDirectWeeklyData(directCampaigns, activeMonth);
   if (!weeks.length) {
-    table.innerHTML = '<tbody><tr><td colspan="2" class="error-msg" style="padding:16px">Нет данных за этот месяц</td></tr></tbody>';
+    table.innerHTML = '<tbody><tr><td colspan="2" class="error-msg">Нет данных за этот месяц</td></tr></tbody>';
     return;
   }
 
@@ -2523,65 +2591,61 @@ function resetDirectCampaigns() {
 // Отдельного листа `ads` нет — реклама конкурентов лежит в `positions`.
 const SHEET_BASES = ['positions', 'queries', 'metrika_traffic', 'metrika_sources', 'metrika_adv', 'metrika_pages', 'pages_map', 'domains_map'];
 
-// Загружает один набор листов; suffix = '' или '_<центр>'
-async function loadSheetSet(suffix) {
-  const arr = await Promise.all(SHEET_BASES.map(n => fetchSheet(n + suffix).catch(() => [])));
-  const set = {};
-  SHEET_BASES.forEach((n, i) => { set[n] = arr[i]; });
-  set.positions = normalizeRows(set.positions, POS_HEADER_MAP);
-  set.queries = normalizeRows(set.queries, QUERIES_HEADER_MAP);
-  set.ads = adsFromPositions(set.positions);
-  return set;
-}
-
 // Листы бренда с центрами, которые лежат по центрам (суффикс _<центр>).
 // positions (вместе с рекламой конкурентов), pages_map, domains_map — общие
 // (один лист на всю клинику).
 const CENTER_BASES = ['queries', 'metrika_traffic', 'metrika_sources', 'metrika_adv', 'metrika_pages'];
+const SHARED_BASES = ['positions', 'pages_map', 'domains_map'];
 
-async function loadCenterBases(suffix) {
-  const arr = await Promise.all(CENTER_BASES.map(n => fetchSheet(n + suffix).catch(() => [])));
+// Загружает набор листов bases с суффиксом suffix ('' или '_<центр>').
+// Недоступный или несуществующий лист даёт пустой массив.
+async function loadSheetSet(sheetId, bases, suffix) {
+  const arr = await Promise.all(bases.map(n => fetchSheet(sheetId, n, suffix).catch(() => [])));
   const set = {};
-  CENTER_BASES.forEach((n, i) => { set[n] = arr[i]; });
-  set.queries = normalizeRows(set.queries, QUERIES_HEADER_MAP);
+  bases.forEach((n, i) => { set[n] = arr[i]; });
+  if (set.positions) set.positions = normalizeRows(set.positions, POS_HEADER_MAP);
+  if (set.queries) set.queries = normalizeRows(set.queries, QUERIES_HEADER_MAP);
   return set;
 }
 
-// Загружает данные активного бренда/центра с учётом режима «Все»
-async function loadActiveData() {
-  const b = BRANDS[activeBrand];
-  const direct_weekly = normalizeDirectRows(await fetchDirectSheet().catch(() => []));
+// Загружает данные бренда brandIdx / центра centerKey с учётом режима «Все».
+// Бренд и центр передаются явно: пока идут запросы, пользователь может
+// переключиться, и activeBrand/activeCenter станут другими.
+// Все листы, включая Директ, запрашиваются одной параллельной волной.
+async function loadActiveData(brandIdx, centerKey) {
+  const b = BRANDS[brandIdx];
+  const directP = b.directTab
+    ? fetchCSV(sheetUrl(DIRECT_SHEET_ID, b.directTab)).then(normalizeDirectRows).catch(() => [])
+    : Promise.resolve([]);
+
   if (!b.centers) {
-    return { ...await loadSheetSet(''), direct_weekly };
+    const [set, direct_weekly] = await Promise.all([loadSheetSet(b.sheetId, SHEET_BASES, ''), directP]);
+    return { ...set, ads: adsFromPositions(set.positions), direct_weekly };
   }
 
-  // Общие листы клиники (keys.so + справочники)
-  const [positionsRaw, pages_map, domains_map] = await Promise.all([
-    fetchSheet('positions').catch(() => []),
-    fetchSheet('pages_map').catch(() => []),
-    fetchSheet('domains_map').catch(() => []),
+  // Общие листы клиники (keys.so + справочники) и листы нужных центров
+  const centerKeys = centerKey === 'all' ? b.centers.map(c => c.key) : [centerKey];
+  const [shared, direct_weekly, ...sets] = await Promise.all([
+    loadSheetSet(b.sheetId, SHARED_BASES, ''),
+    directP,
+    ...centerKeys.map(k => loadSheetSet(b.sheetId, CENTER_BASES, '_' + k)),
   ]);
-  const positions = normalizeRows(positionsRaw, POS_HEADER_MAP);
-  const ads = adsFromPositions(positions);
-
-  if (activeCenter !== 'all') {
-    const center = await loadCenterBases('_' + activeCenter);
-    return { positions, ads, pages_map, domains_map, ...center, direct_weekly };
-  }
-
-  const sets = await Promise.all(b.centers.map(c => loadCenterBases('_' + c.key)));
-  return { ...aggregateCenters(positions, ads, sets, b), pages_map, domains_map, direct_weekly };
+  const ads = adsFromPositions(shared.positions);
+  if (centerKey !== 'all') return { ...shared, ads, ...sets[0], direct_weekly };
+  return {
+    ...aggregateCenters(shared.positions, ads, sets, b),
+    pages_map: shared.pages_map,
+    domains_map: shared.domains_map,
+    direct_weekly,
+  };
 }
-
-// Месяц-ключ строки Метрики (даты ISO)
-function metricMonthKey(r) { const d = new Date(r.date); return isNaN(d) ? r.date : formatMonth(d); }
 
 // Универсальная агрегация: группировка по месяцу + dimFields,
 // sumFields суммируются, wavgFields — средневзвешенные по визитам
 function aggSum(arrays, dimFields, sumFields, wavgFields) {
   const map = new Map();
   arrays.forEach(rows => rows.forEach(r => {
-    const key = metricMonthKey(r) + '|' + dimFields.map(f => r[f] || '').join('|');
+    const key = (rowMonth(r) || r.date) + '|' + dimFields.map(f => r[f] || '').join('|');
     let acc = map.get(key);
     if (!acc) {
       acc = { date: r.date, _w: 0 };
@@ -2611,7 +2675,7 @@ function aggSum(arrays, dimFields, sumFields, wavgFields) {
 function aggregateCenters(positionsShared, adsShared, sets, brand) {
   const aggDomain = (brand.domain || '').replace(/^https?:\/\//, '');
   const centerDomains = new Set(brand.centers.map(c => c.domain.replace(/^https?:\/\//, '')));
-  const posMonth = r => { const d = parseDate(r.date); return d && !isNaN(d) ? formatMonth(d) : null; };
+  const posMonth = rowMonth;
   const POS_NUM = ['top1', 'top3', 'top5', 'top10', 'top50', 'traffic', 'pages'];
 
   // Позиции из общего листа:
@@ -2663,25 +2727,60 @@ function aggregateCenters(positionsShared, adsShared, sets, brand) {
     metrika_traffic: aggSum(sets.map(s => s.metrika_traffic), [], ['visits', 'pageviews', 'users'], ['bounceRate', 'avgDuration']),
     metrika_sources: aggSum(sets.map(s => s.metrika_sources), ['source', 'parent'], ['visits'], []),
     metrika_adv: aggSum(sets.map(s => s.metrika_adv), ['advSystem'], ['visits', 'users'], ['bounceRate', 'avgDuration']),
+    // Намеренно склеиваем страницы всех центров по пути, как у одного бренда:
+    // «Все» — сводный вид клиники, по отдельным центрам есть свои вкладки
     metrika_pages: aggSum(sets.map(s => s.metrika_pages), ['page'], ['visits'], ['bounceRate', 'avgDuration']),
   };
 }
 
-async function init() {
-  try {
-    allData = await loadActiveData();
+// Все блоки дашборда. Прячем разом, когда данных нет или загрузка упала,
+// чтобы на экране не остались таблицы предыдущего бренда
+const ALL_SECTION_IDS = [
+  'section-pos-metrics', 'section-pos-charts', 'section-org-competitors', 'section-queries', 'section-ads',
+  'section-metrika-traffic', 'section-metrika-sources', 'section-metrika-adv', 'section-metrika-pages',
+  'section-direct', 'direct-block-header',
+];
+function hideAllSections() {
+  ALL_SECTION_IDS.forEach(id => { document.getElementById(id).style.display = 'none'; });
+  document.getElementById('month-tabs').innerHTML = '';
+  updateBlockHeaders();
+}
 
-    const months = getMonths(allData.positions);
+// Номер последней загрузки: ответ устаревшей загрузки (пользователь успел
+// переключить бренд или центр) отбрасывается
+let loadSeq = 0;
+
+// Загружает данные активного бренда/центра и перерисовывает дашборд.
+// preferredMonth — подпись месяца («Май 2026»), которую надо сохранить
+// при переключении, если такой месяц есть у нового бренда.
+async function init(preferredMonth = null) {
+  const seq = ++loadSeq;
+  setStatus('Загружаем данные...', true);
+  try {
+    const data = await loadActiveData(activeBrand, activeCenter);
+    if (seq !== loadSeq) return;
+    allData = data;
+
+    const months = getAllMonths();
     if (!months.length) {
+      hideAllSections();
       setStatus('Нет данных в таблице', false);
       return;
     }
 
-    activeMonth = months[months.length - 1];
-    setStatus('Данные обновлены', false);
+    // По умолчанию — последний месяц keys.so; если позиций нет — последний месяц Метрики
+    const last = arr => arr[arr.length - 1];
+    activeMonth = (preferredMonth && months.find(m => formatMonth(m) === preferredMonth))
+      || last(getMonths(allData.positions))
+      || last(getMonths(allData.metrika_traffic))
+      || last(months);
     renderAll();
+    setStatus('Данные обновлены', false);
   } catch (e) {
+    if (seq !== loadSeq) return;
     console.error(e);
+    allData = emptyData();
+    hideAllSections();
     setStatus('Ошибка загрузки данных', false);
   }
 }
@@ -2694,11 +2793,18 @@ init();
 <script>
   const _btn = document.getElementById('back-to-top');
   const _wrap = document.getElementById('month-tabs-wrap');
+  // Не чаще одного раза за кадр: updateSectionNavActive меряет положение заголовков
+  let _scrollQueued = false;
   window.addEventListener('scroll', () => {
-    _btn.classList.toggle('visible', window.scrollY > 300);
-    _wrap.classList.toggle('scrolled', window.scrollY > 60);
-    updateSectionNavActive();
-  });
+    if (_scrollQueued) return;
+    _scrollQueued = true;
+    requestAnimationFrame(() => {
+      _scrollQueued = false;
+      _btn.classList.toggle('visible', window.scrollY > 300);
+      _wrap.classList.toggle('scrolled', window.scrollY > 60);
+      updateSectionNavActive();
+    });
+  }, { passive: true });
 </script>
 </body>
 </html>
