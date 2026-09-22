@@ -953,7 +953,10 @@ const BRANDS = [
       { key: 'men',       name: 'Мужской',    domain: 'https://men.sadkomed.ru' },
       { key: 'mammology', name: 'Маммология', domain: 'https://mammology.sadkomed.ru' },
       { key: 'neurology', name: 'Неврология', domain: 'https://neurology.sadkomed.ru' },
-    ] },
+    ],
+    // Свои домены без отдельной вкладки и счётчика Метрики: в режиме «Все»
+    // их строки keys.so входят в общую строку клиники, в таблицах подсвечиваются как свои
+    extraDomains: ['https://vrach-na-dom.sadkomed.ru'] },
   { name: 'Офтальмология', title: 'vizhu.sadkomed.ru', sheetId: '1QYetwmeWqpntHSpeu7fs6rKE-H-ojNj-P368Yl0o4BM', domain: 'https://vizhu.sadkomed.ru', directTab: 'oftalm' },
   { name: 'Здоровенок', title: 'zdorovenok.ru', sheetId: '1CsSX3R0eA0mHTM8R3VDTyjenU_buDnQwlgZ6xPVkCK0', domain: 'https://zdorovenok.sadkomed.ru', directTab: 'zdorovenok' },
   { name: 'Дино', title: 'dino.sadkomed.ru', sheetId: '1rWn4O1OG4iQQVZakrHlfEhp0bkC0aqFXu0MjcFTfkQk', domain: 'https://dino.sadkomed.ru', directTab: 'dino' },
@@ -964,7 +967,7 @@ const BRANDS = [
 const OUR_DOMAINS = (() => {
   const s = new Set();
   const add = d => { if (d) s.add(d.replace(/^https?:\/\//, '').toLowerCase()); };
-  BRANDS.forEach(b => { add(b.domain); add(b.title); (b.centers || []).forEach(c => add(c.domain)); });
+  BRANDS.forEach(b => { add(b.domain); add(b.title); (b.centers || []).forEach(c => add(c.domain)); (b.extraDomains || []).forEach(add); });
   return s;
 })();
 function isOwnDomain(domain) {
@@ -2674,7 +2677,9 @@ function aggSum(arrays, dimFields, sumFields, wavgFields) {
 // через adsFromPositions(); sets — по центрам (queries, metrika_*, pages_map)
 function aggregateCenters(positionsShared, adsShared, sets, brand) {
   const aggDomain = (brand.domain || '').replace(/^https?:\/\//, '');
-  const centerDomains = new Set(brand.centers.map(c => c.domain.replace(/^https?:\/\//, '')));
+  // Свои домены общей строки: центры + extraDomains (напр. врач на дом)
+  const centerDomains = new Set([...brand.centers.map(c => c.domain), ...(brand.extraDomains || [])]
+    .map(d => d.replace(/^https?:\/\//, '')));
   const posMonth = rowMonth;
   const POS_NUM = ['top1', 'top3', 'top5', 'top10', 'top50', 'traffic', 'pages'];
 
