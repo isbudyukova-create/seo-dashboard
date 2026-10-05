@@ -327,6 +327,7 @@ body {
 .query-up { background: var(--green-bg); color: var(--green); }
 .query-down { background: var(--red-bg); color: var(--red); }
 .query-new { background: var(--blue-bg); color: var(--accent); }
+.query-neutral { background: var(--surface2); color: var(--muted); }
 .visits-period-btn,
 .direct-period-btn {
   padding: 3px 10px;
@@ -385,6 +386,12 @@ body {
 .direct-pivot-table tbody tr:hover td { background: var(--surface2); }
 .direct-pivot-table td.direct-empty { color: var(--muted); }
 .direct-pivot-table td.error-msg { padding: 16px; }
+/* VK Реклама */
+.vk-card { margin-top: 16px; }
+.vk-scroll { overflow-x: auto; }
+.direct-pivot-table td.vk-campaign { text-align: left; white-space: normal; min-width: 220px; }
+.vk-type { display: block; font-size: 11px; color: var(--muted); }
+.direct-pivot-table tr.vk-total td { font-weight: 500; background: var(--surface2); }
 .direct-metric-toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .direct-cb {
   appearance: none;
@@ -659,6 +666,7 @@ tr.row-own td { background: rgba(61,61,200,0.06) !important; }
       <button class="section-nav-btn" data-target="keys-block-header" onclick="scrollToBlock('keys-block-header')">keys.so</button>
       <button class="section-nav-btn" data-target="metrika-block-header" onclick="scrollToBlock('metrika-block-header')">Яндекс Метрика</button>
       <button class="section-nav-btn" data-target="direct-block-header" onclick="scrollToBlock('direct-block-header')">Яндекс Директ</button>
+      <button class="section-nav-btn" data-target="vk-block-header" onclick="scrollToBlock('vk-block-header')">VK Реклама</button>
     </div>
   </div>
 
@@ -925,6 +933,41 @@ tr.row-own td { background: rgba(61,61,200,0.06) !important; }
 
   </div>
 
+  <!-- VK РЕКЛАМА -->
+  <div class="block-header" id="vk-block-header" style="display:none">VK Реклама</div>
+  <div class="section" id="section-vk" style="display:none">
+
+    <!-- Итоги выбранного месяца (все кампании) -->
+    <div class="metrics-grid" id="vk-metrics"></div>
+
+    <div class="queries-card vk-card" id="vk-campaigns-card">
+      <div class="queries-header">
+        <span class="queries-title">Кампании</span>
+      </div>
+      <div class="vk-scroll">
+        <table class="direct-pivot-table" id="vk-campaigns-table"></table>
+      </div>
+    </div>
+
+    <!-- Динамика: итого по всем кампаниям месяца, выбор периода -->
+    <div class="queries-card vk-card">
+      <div class="queries-header" style="padding-top:8px;padding-bottom:8px;border-bottom:none;justify-content:flex-end">
+        <div style="display:flex;gap:4px">
+          <button class="direct-period-btn" onclick="setVkPeriod(3,this)">3 мес</button>
+          <button class="direct-period-btn active" onclick="setVkPeriod(6,this)">6 мес</button>
+          <button class="direct-period-btn" onclick="setVkPeriod(12,this)">12 мес</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- График динамики (нормализованный) -->
+    <div class="chart-card vk-card">
+      <div class="chart-card-title">Динамика по месяцам (нормализованная, 0–100%)</div>
+      <div class="chart-wrap"><canvas id="vkLineChart" role="img" aria-label="Динамика показателей VK Рекламы по месяцам"></canvas></div>
+    </div>
+
+  </div>
+
 </div>
 
 <script>
@@ -946,7 +989,7 @@ function datalabelsConfig(count) {
 
 const BRANDS = [
   { name: 'Стоматология', title: 'dental.sadkomed.ru', sheetId: '18_wK4ym4OvY5YuCtTI7ZmEZhbrxXdGcflIL8sIQxxMo', domain: 'https://dental.sadkomed.ru', directTab: 'stom' },
-  { name: 'Клиника', title: 'clinic.sadkomed.ru', sheetId: '10VLpClABfSUCZIVoQjGKn7Di1OqYdS8ymtMdkUqgpJM', domain: 'https://clinic.sadkomed.ru', directTab: 'kst',
+  { name: 'Клиника', title: 'clinic.sadkomed.ru', sheetId: '10VLpClABfSUCZIVoQjGKn7Di1OqYdS8ymtMdkUqgpJM', domain: 'https://clinic.sadkomed.ru', directTab: 'kst', vkGid: '1305423833',
     centers: [
       { key: 'clinic',    name: 'Клиника',    domain: 'https://clinic.sadkomed.ru' },
       { key: 'women',     name: 'Женский',    domain: 'https://women.sadkomed.ru' },
@@ -957,7 +1000,7 @@ const BRANDS = [
     // Свои домены без отдельной вкладки и счётчика Метрики: в режиме «Все»
     // их строки keys.so входят в общую строку клиники, в таблицах подсвечиваются как свои
     extraDomains: ['https://vrach-na-dom.sadkomed.ru'] },
-  { name: 'Офтальмология', title: 'vizhu.sadkomed.ru', sheetId: '1QYetwmeWqpntHSpeu7fs6rKE-H-ojNj-P368Yl0o4BM', domain: 'https://vizhu.sadkomed.ru', directTab: 'oftalm' },
+  { name: 'Офтальмология', title: 'vizhu.sadkomed.ru', sheetId: '1QYetwmeWqpntHSpeu7fs6rKE-H-ojNj-P368Yl0o4BM', domain: 'https://vizhu.sadkomed.ru', directTab: 'oftalm', vkGid: '0' },
   { name: 'Здоровенок', title: 'zdorovenok.ru', sheetId: '1CsSX3R0eA0mHTM8R3VDTyjenU_buDnQwlgZ6xPVkCK0', domain: 'https://zdorovenok.sadkomed.ru', directTab: 'zdorovenok' },
   { name: 'Дино', title: 'dino.sadkomed.ru', sheetId: '1rWn4O1OG4iQQVZakrHlfEhp0bkC0aqFXu0MjcFTfkQk', domain: 'https://dino.sadkomed.ru', directTab: 'dino' },
   { name: 'Косметология', title: 'cosmetology.sadkomed.ru', sheetId: '1oBZmlZyeWIoRfuTCZfenWu1V9wr68ynvpYwz8nK6-I0', domain: 'https://cosmetology.sadkomed.ru', directTab: 'kik' },
@@ -975,12 +1018,15 @@ function isOwnDomain(domain) {
 }
 
 const DIRECT_SHEET_ID = '1pKM-243Fol0oPcbcyD6fTQiUBEuXQVKzWGrjMMjOMVE';
+// VK Реклама: отдельная таблица только для дашборда (без заявок с контактами
+// пациентов — ID таблицы публичен). Вкладка на бренд, адресуется по gid (BRANDS[i].vkGid)
+const VK_SHEET_ID = '1UeeMXV3vlpiN9kMbuvaGQF4jOIUe-ADOYCLUiWYllrQ';
 let activeBrand = 0;
 let activeCenter = 'all'; // для брендов с центрами: 'all' (агрегат) или key центра
 
 let allData = emptyData();
 function emptyData() {
-  return { positions: [], queries: [], ads: [], metrika_traffic: [], metrika_sources: [], metrika_adv: [], metrika_pages: [], pages_map: [], domains_map: [], direct_weekly: [] };
+  return { positions: [], queries: [], ads: [], metrika_traffic: [], metrika_sources: [], metrika_adv: [], metrika_pages: [], pages_map: [], domains_map: [], direct_weekly: [], vk_monthly: [] };
 }
 let activeMonth = null;
 let posFilter = 0;
@@ -990,6 +1036,9 @@ let orgShowAll = false;
 let visitsPeriod = 12;
 let posChart = null, trafficChart = null;
 let directLineChart = null;
+let vkLineChart = null;
+let vkPeriod = 6;
+let vkChecked = new Set(['cost', 'leads', 'subs']);
 let directPeriod = 6;
 let directCampaigns = new Set();
 let directChecked = new Set(['clicks', 'cost']);
@@ -1016,6 +1065,12 @@ function safeHref(u) { return /^https?:\/\//i.test(u || '') ? esc(u) : '#'; }
 
 function sheetUrl(sheetId, name) {
   return `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(name)}`;
+}
+// Экспорт по gid отдаёт значения как они видны в таблице. gviz по смешанной
+// колонке угадывает тип и выбрасывает «чужие» значения («1 583» среди чисел),
+// а в отчёте VK числа вставлены вручную и форматы смешаны.
+function sheetExportUrl(sheetId, gid) {
+  return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${encodeURIComponent(gid)}`;
 }
 
 // ── Центры (мультисчётчиковые бренды, напр. Клиника) ─────────
@@ -1362,7 +1417,7 @@ function selectMonth(label) {
 
 function getAllMonths() {
   const map = new Map();
-  [allData.positions, allData.metrika_traffic, allData.direct_weekly].forEach(rows =>
+  [allData.positions, allData.metrika_traffic, allData.direct_weekly, allData.vk_monthly].forEach(rows =>
     getMonths(rows).forEach(d => map.set(formatMonth(d), d)));
   return [...map.values()].sort((a, b) => a - b);
 }
@@ -1415,6 +1470,7 @@ function renderAll() {
   renderMetrikaAdv();
   renderMetrikaPages();
   renderDirectStats();
+  renderVkStats();
   updateBlockHeaders();
   updateSectionNavActive();
 }
@@ -1877,12 +1933,13 @@ function mPrevYearMonth(month) {
 }
 
 // fmt — форматер модуля разницы (напр. formatDuration для времени на сайте)
-function metrikaDelta(cur, prev, suffix = '', invert = false, fmt = null) {
+// neutral — рост и падение не хорошо и не плохо (напр. расход): серая плашка
+function metrikaDelta(cur, prev, suffix = '', invert = false, fmt = null, neutral = false) {
   if (prev === null || prev === undefined) return '';
   const d = cur - prev;
   if (d === 0) return '';
   const positive = invert ? d < 0 : d > 0;
-  const cls = positive ? 'query-up' : 'query-down';
+  const cls = neutral ? 'query-neutral' : positive ? 'query-up' : 'query-down';
   const arrow = d > 0 ? '↑' : '↓';
   const abs = Math.abs(d);
   const text = fmt ? fmt(abs) : abs.toLocaleString('ru-RU') + suffix;
@@ -2443,8 +2500,19 @@ function renderDirectStats() {
 }
 
 function renderDirectLineChart(allMonths, allMonthlyData) {
-  const ctx = document.getElementById('directLineChart').getContext('2d');
-  if (directLineChart) directLineChart.destroy();
+  directLineChart = renderNormLineChart('directLineChart', directLineChart, allMonths, allMonthlyData,
+    DIRECT_METRICS.filter(m => directChecked.has(m.key)));
+}
+
+// Нормализованный линейный график (Директ, VK): каждая метрика делится на
+// свой максимум → шкала 0–100%, в подсказке реальное значение.
+// metrics — метрики { key, label, color, fmt, empty? };
+// empty(d) — значение не определено (нет знаменателя), точка пропускается.
+// opts.isHidden(metric) — линия есть в легенде, но скрыта (клик показывает);
+// opts.onToggle(metric, visible) — вызывается после клика по легенде.
+function renderNormLineChart(canvasId, oldChart, allMonths, allMonthlyData, metrics, opts = {}) {
+  if (oldChart) oldChart.destroy();
+  const ctx = document.getElementById(canvasId).getContext('2d');
 
   // Обрезаем пустые месяцы по краям, чтобы график не начинался/заканчивался пустым местом
   const firstIdx = allMonthlyData.findIndex(d => d !== null);
@@ -2453,19 +2521,20 @@ function renderDirectLineChart(allMonths, allMonthlyData) {
   const monthlyData = firstIdx >= 0 ? allMonthlyData.slice(firstIdx, lastIdx + 1) : allMonthlyData;
 
   const labels   = months.map(m => formatMonth(m));
-  const checked  = DIRECT_METRICS.filter(m => directChecked.has(m.key));
-  const datasets = checked.map(metric => {
-    const raw    = monthlyData.map(d => d ? (d[metric.key] || 0) : null);
+  const datasets = metrics.map(metric => {
+    const raw    = monthlyData.map(d => !d || (metric.empty && metric.empty(d)) ? null : (d[metric.key] || 0));
     const maxVal = Math.max(...raw.filter(v => v !== null), 1);
     return {
       label: metric.label,
+      hidden: opts.isHidden ? opts.isHidden(metric) : false,
       actualData: raw,
       data: raw.map(v => v !== null ? Math.round(v / maxVal * 100) : null),
       borderColor: metric.color,
       backgroundColor: 'transparent',
       borderWidth: 2,
       tension: 0,
-      pointRadius: 0,
+      pointRadius: months.length === 1 ? 4 : 0, // одна точка без маркера не видна
+      pointBackgroundColor: metric.color,
       pointHoverRadius: 4,
       pointHoverBackgroundColor: metric.color,
       pointHoverBorderColor: '#fff',
@@ -2476,7 +2545,7 @@ function renderDirectLineChart(allMonths, allMonthlyData) {
 
   const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
   const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
-  directLineChart = new Chart(ctx, {
+  return new Chart(ctx, {
     type: 'line',
     data: { labels, datasets },
     options: {
@@ -2484,10 +2553,17 @@ function renderDirectLineChart(allMonths, allMonthlyData) {
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: { display: true, labels: { font: { family: 'Golos Text', size: 12 }, boxWidth: 12, padding: 16 } },
+        legend: {
+          display: true,
+          labels: { font: { family: 'Golos Text', size: 12 }, boxWidth: 12, padding: 16 },
+          onClick(e, item, legend) {
+            Chart.defaults.plugins.legend.onClick.call(this, e, item, legend);
+            if (opts.onToggle) opts.onToggle(metrics[item.datasetIndex], legend.chart.isDatasetVisible(item.datasetIndex));
+          },
+        },
         tooltip: { callbacks: { label: item => {
           const actual = item.dataset.actualData?.[item.dataIndex];
-          const metric = checked.find(m => m.label === item.dataset.label);
+          const metric = metrics.find(m => m.label === item.dataset.label);
           const formatted = (actual !== null && actual !== undefined && metric) ? metric.fmt(actual) : item.raw + '%';
           return `${item.dataset.label}: ${formatted}`;
         }}}
@@ -2506,13 +2582,20 @@ function renderDirectLineChart(allMonths, allMonthlyData) {
 }
 
 function renderDirectMonthlyTable(months, monthlyData) {
-  const table = document.getElementById('direct-monthly-table');
+  renderMetricToggleTable('direct-monthly-table', months, monthlyData, DIRECT_METRICS, directChecked,
+    'toggleDirectMetric', 'toggleAllDirectMetrics');
+}
+
+// Пивот «метрика × месяц» с чекбоксами, включающими линии на графике.
+// toggleFn / toggleAllFn — имена глобальных обработчиков (вызываются из onchange).
+function renderMetricToggleTable(tableId, months, monthlyData, metrics, checkedSet, toggleFn, toggleAllFn) {
+  const table = document.getElementById(tableId);
   const headerCells = months.map(m => `<th>${formatMonth(m)}</th>`).join('');
 
-  const rows = DIRECT_METRICS.map(metric => {
-    const checked = directChecked.has(metric.key);
+  const rows = metrics.map(metric => {
+    const checked = checkedSet.has(metric.key);
     const cells = monthlyData.map(data => {
-      if (!data) return `<td class="direct-empty">—</td>`;
+      if (!data || (metric.empty && metric.empty(data))) return `<td class="direct-empty">—</td>`;
       return `<td>${metric.fmt(data[metric.key] || 0)}</td>`;
     }).join('');
     return `<tr>
@@ -2520,7 +2603,7 @@ function renderDirectMonthlyTable(months, monthlyData) {
         <label class="direct-metric-toggle">
           <input type="checkbox" class="direct-cb" ${checked ? 'checked' : ''}
             data-color="${metric.color}"
-            onchange="toggleDirectMetric('${metric.key}',this)">
+            onchange="${toggleFn}('${metric.key}',this)">
           <span>${metric.label}</span>
         </label>
       </td>
@@ -2528,10 +2611,10 @@ function renderDirectMonthlyTable(months, monthlyData) {
     </tr>`;
   }).join('');
 
-  const allChecked = DIRECT_METRICS.every(m => directChecked.has(m.key));
-  const selectAllCb = `<input type="checkbox" class="direct-cb" id="direct-cb-all"
+  const allChecked = metrics.every(m => checkedSet.has(m.key));
+  const selectAllCb = `<input type="checkbox" class="direct-cb"
     ${allChecked ? 'checked' : ''}
-    onchange="toggleAllDirectMetrics(this)">`;
+    onchange="${toggleAllFn}(this)">`;
   table.innerHTML = `<thead><tr><th>${selectAllCb}</th>${headerCells}</tr></thead><tbody>${rows}</tbody>`;
   // Цвет отмеченного чекбокса = цвет линии метрики на графике (см. .direct-cb:checked)
   table.querySelectorAll('.direct-cb[data-color]').forEach(cb => cb.style.setProperty('--cb-color', cb.dataset.color));
@@ -2575,7 +2658,7 @@ function toggleDirectMetric(key, checkbox) {
 
 function setDirectPeriod(months, btn) {
   directPeriod = months;
-  document.querySelectorAll('.direct-period-btn').forEach(b => b.classList.remove('active'));
+  btn.parentElement.querySelectorAll('.direct-period-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   renderDirectStats();
 }
@@ -2594,6 +2677,201 @@ function toggleDirectCampaign(campaign) {
 function resetDirectCampaigns() {
   directCampaigns.clear();
   renderDirectStats(); // при пустом наборе renderDirectStats сам добавит первую кампанию
+}
+
+// ── VK РЕКЛАМА ───────────────────────────────────────────────
+
+// Число из отчёта VK: «20 369», «6991,08», «0,18 %» → number; пусто → 0
+function vkNum(v) {
+  const n = parseFloat(String(v ?? '').replace(/[\s ₽%]/g, '').replace(',', '.'));
+  return isNaN(n) ? 0 : n;
+}
+
+// Строка = кампания за месяц. Месяц «2026-08» (или дата 01.08.2026).
+// Строки без месяца или без кампании (итоги, пометки, старые блоки ниже
+// таблицы) отбрасываются. CTR, eCPC, цену результата и % записи считаем
+// сами из сумм — эти колонки таблицы не используются.
+function normalizeVkRows(rows) {
+  if (!rows.length) return [];
+  const keys = Object.keys(rows[0]);
+  const col = prefix => keys.find(k => k.toLowerCase().startsWith(prefix)) || prefix;
+  const C = {
+    month: col('месяц'), campaign: col('кампания'), type: col('тип'), impressions: col('показы'), clicks: col('клики'),
+    results: col('результат'), cost: col('потрачено'), signups: col('записались'),
+  };
+  return rows.map(r => {
+    const campaign = (r[C.campaign] || '').trim();
+    const raw = (r[C.month] || '').trim();
+    let m = raw.match(/^(\d{4})-(\d{2})/);
+    if (!m) { const d = raw.match(/^\d{2}\.(\d{2})\.(\d{4})$/); if (d) m = [raw, d[2], d[1]]; }
+    if (!m || !campaign) return null;
+    return {
+      date: `${m[1]}-${m[2]}-01`,
+      campaign,
+      type: vkType(r[C.type], campaign),
+      impressions: vkNum(r[C.impressions]),
+      clicks:      vkNum(r[C.clicks]),
+      results:     vkNum(r[C.results]),
+      cost:        vkNum(r[C.cost]),
+      signups:     vkNum(r[C.signups]),
+    };
+  }).filter(Boolean);
+}
+
+// Тип кампании — из колонки «Тип» (лид / подписка / охват / сайт), её
+// заполняет маркетолог. Пустая ячейка — тип угадывается по названию.
+// Порядок проверок важен: «Акция веки лид формы» — лид, «акция веки сайт» — сайт.
+// Охват, сайт, прочее: результат не попадает ни в лиды, ни в подписки,
+// расход — только в общий.
+function vkType(typeCell, name) {
+  const s = (typeCell || '').trim() || name;
+  if (/лид/i.test(s)) return 'lead';
+  if (/подпис/i.test(s)) return 'sub';
+  if (/охват/i.test(s)) return 'reach';
+  if (/сайт|клик|трафик/i.test(s)) return 'site';
+  return 'other';
+}
+const VK_TYPES = { lead: 'Лид-форма', sub: 'Подписка', reach: 'Охват', site: 'Сайт', other: 'Прочее' };
+const VK_TYPE_ORDER = ['lead', 'sub', 'reach', 'site', 'other'];
+
+// Суммы по набору строк + производные из сумм. Лиды и подписки — разные
+// результаты, складывать их нельзя: общий «Результат» есть, только когда все
+// строки одного типа (строка кампании), иначе null.
+function aggregateVkRows(rows) {
+  if (!rows.length) return null;
+  const sum = (k, type) => rows.reduce((s, r) => s + (!type || r.type === type ? r[k] : 0), 0);
+  const impressions = sum('impressions'), clicks = sum('clicks'), cost = sum('cost'), signups = sum('signups');
+  const leads = sum('results', 'lead'), subs = sum('results', 'sub');
+  const oneType = new Set(rows.map(r => r.type)).size === 1;
+  const results = oneType ? sum('results') : null;
+  return {
+    impressions, clicks, cost, signups, leads, subs, results,
+    ctr:         impressions > 0 ? clicks / impressions * 100 : 0,
+    cpc:         clicks  > 0 ? cost / clicks  : 0,
+    cpl:         leads   > 0 ? sum('cost', 'lead') / leads : 0,
+    cps:         subs    > 0 ? sum('cost', 'sub')  / subs  : 0,
+    cpr:         results > 0 ? cost / results : 0,
+    signup_rate: leads   > 0 ? signups / leads * 100 : 0,
+  };
+}
+
+const vkInt  = n => Math.round(n).toLocaleString('ru-RU');
+const vkRub  = n => Math.round(n).toLocaleString('ru-RU') + ' ₽';
+const vkRub2 = n => n.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₽';
+const vkPct  = n => n.toFixed(2).replace('.', ',') + '%';
+// short — заголовок в таблице кампаний (иначе она не помещается по ширине).
+// fmt — в таблицах и подсказках графика, card/cardLabel — в карточках (₽ уходит
+// в подпись, иначе крупное число переносится). noCard — только в таблицах,
+// campaignOnly — только в таблице кампаний. invert — рост метрики плохой,
+// neutral — изменение без оценки (серая плашка).
+// empty — значение не определено (нет знаменателя / смешаны типы) → «—».
+// group — метрика показывается, только если у бренда есть такие кампании
+// (лиды, подписки) или заполнены «Записались».
+// color — линия на графике; те же цвета, что у похожих метрик Директа.
+const VK_METRICS = [
+  { key: 'cost',        label: 'Расход без НДС',  short: 'Расход', color: '#6CBE6C', fmt: vkRub,  card: vkInt, cardLabel: 'Расход без НДС, ₽', neutral: true },
+  { key: 'leads',       label: 'Лиды',            color: '#FF6B6B', fmt: vkInt,  group: 'lead' },
+  { key: 'cpl',         label: 'Цена лида',       color: '#4DD0C4', fmt: vkRub2, card: vkInt, cardLabel: 'Цена лида, ₽', invert: true, empty: d => !d.leads, group: 'lead' },
+  { key: 'subs',        label: 'Подписки',        color: '#FFA040', fmt: vkInt,  group: 'sub' },
+  { key: 'cps',         label: 'Цена подписки',   color: '#9B85C4', fmt: vkRub2, card: vkInt, cardLabel: 'Цена подписки, ₽', invert: true, empty: d => !d.subs, group: 'sub' },
+  { key: 'signups',     label: 'Записались',      color: '#4E8AF4', fmt: vkInt,  group: 'signup' },
+  { key: 'signup_rate', label: '% записи с лидов', short: '% записи', color: '#E86BC4', fmt: vkPct, empty: d => !d.leads, group: 'signup', noCard: true },
+  { key: 'impressions', label: 'Показы',          color: '#7B9EF4', fmt: vkInt,  noCard: true },
+  { key: 'clicks',      label: 'Клики',           color: '#FF3080', fmt: vkInt,  noCard: true },
+  { key: 'ctr',         label: 'CTR',             color: '#FF8C42', fmt: vkPct,  empty: d => !d.impressions, noCard: true },
+  { key: 'cpc',         label: 'eCPC',            color: '#1A7070', fmt: vkRub2, invert: true, empty: d => !d.clicks, noCard: true },
+  { key: 'results',     label: 'Результат',       fmt: vkInt,  empty: d => d.results === null, campaignOnly: true },
+  { key: 'cpr',         label: 'Цена результата', short: 'Цена', fmt: vkRub2, empty: d => !d.results, campaignOnly: true },
+];
+const vkMetric = key => VK_METRICS.find(m => m.key === key);
+const vkCell = (m, d, fmt = m.fmt) => m.empty && m.empty(d) ? '—' : fmt(d[m.key]);
+
+function renderVkStats() {
+  const section = document.getElementById('section-vk');
+  const header  = document.getElementById('vk-block-header');
+  const rows = allData.vk_monthly;
+  const months = getMonths(rows);
+  if (!months.length) { section.style.display = 'none'; header.style.display = 'none'; return; }
+  section.style.display = '';
+  header.style.display  = '';
+
+  // Группы метрик, для которых у бренда есть данные
+  const groups = new Set();
+  if (rows.some(r => r.type === 'lead')) groups.add('lead');
+  if (rows.some(r => r.type === 'sub')) groups.add('sub');
+  if (rows.some(r => r.signups > 0)) groups.add('signup');
+  const shown = m => !m.group || groups.has(m.group);
+
+  // Месяц — строго выбранный в шапке. Нет отчёта за него — «нет данных»
+  // вместо карточек и таблицы кампаний; динамика по этот месяц остаётся.
+  const month = activeMonth || months[months.length - 1];
+  const label = formatMonth(month);
+  renderVkMonth(rowsForMonth(rows, month), month, label, shown);
+
+  // ── Динамика: итого по всем кампаниям месяца ──
+  // Календарный диапазон из vkPeriod месяцев по выбранный включительно
+  const periodMonths = [];
+  for (let i = vkPeriod - 1; i >= 0; i--) periodMonths.push(new Date(month.getFullYear(), month.getMonth() - i, 1));
+  const monthlyData = periodMonths.map(m => aggregateVkRows(rowsForMonth(rows, m)));
+
+  // На графике — только расход, лиды и подписки (лиды/подписки — если они есть у бренда)
+  const metrics = ['cost', 'leads', 'subs'].map(vkMetric).filter(shown);
+  // Все метрики в легенде; видны выбранные, клик по легенде включает/выключает
+  // линию, выбор запоминается в vkChecked (на смену месяца и периода)
+  vkLineChart = renderNormLineChart('vkLineChart', vkLineChart, periodMonths, monthlyData, metrics, {
+    isHidden: m => !vkChecked.has(m.key),
+    onToggle: (m, visible) => { if (visible) vkChecked.add(m.key); else vkChecked.delete(m.key); },
+  });
+}
+
+// Карточки итогов и таблица кампаний за месяц (все кампании)
+function renderVkMonth(monthRows, month, label, shown) {
+  const rows = allData.vk_monthly;
+  const cur  = aggregateVkRows(monthRows);
+  // Дельта — к предыдущему календарному месяцу, если за него есть отчёт
+  const prevM = new Date(month.getFullYear(), month.getMonth() - 1, 1);
+  const prev = aggregateVkRows(rowsForMonth(rows, prevM));
+
+  document.getElementById('vk-campaigns-card').style.display = cur ? '' : 'none';
+  if (!cur) {
+    document.getElementById('vk-metrics').innerHTML = `<div class="error-msg">Нет отчёта VK за ${label}</div>`;
+    return;
+  }
+
+  document.getElementById('vk-metrics').innerHTML = VK_METRICS.filter(m => shown(m) && !m.noCard && !m.campaignOnly).map(m => {
+    const fmt = m.card || m.fmt;
+    const comparable = prev && !(m.empty && (m.empty(cur) || m.empty(prev)));
+    // Значение прошлого месяца — серой подписью, как «vs год назад» у Метрики
+    const prevHint = prev ? `<span class="metric-yoy-hint">${vkCell(m, prev, fmt)}</span>` : '';
+    return `<div class="metric-card">
+      <div class="metric-card-label">${m.cardLabel || m.label}</div>
+      <div class="metric-card-value">${vkCell(m, cur, fmt)}</div>
+      <div class="metric-card-footer">${comparable ? metrikaDelta(cur[m.key], prev[m.key], '', m.invert, fmt, m.neutral) : ''}${prevHint}</div>
+    </div>`;
+  }).join('');
+
+  // Кампании месяца — по типу (лиды, подписки, сайт, прочее), внутри по
+  // убыванию расхода, внизу итог. Результат и цена у каждой строки — своего
+  // типа; в итоге типы смешаны, там «—». Тип — подписью под названием,
+  // eCPC — только в таблице по месяцам: иначе таблица не помещается.
+  const cols = ['impressions', 'clicks', 'ctr', 'results', 'cpr', 'cost', 'signups', 'signup_rate']
+    .map(vkMetric).filter(shown);
+  const rowHtml = (name, type, data, cls) => `<tr${cls ? ` class="${cls}"` : ''}>
+      <td class="vk-campaign">${esc(name)}${type ? `<span class="vk-type">${type}</span>` : ''}</td>${cols.map(c => `<td>${vkCell(c, data)}</td>`).join('')}
+    </tr>`;
+  const campRows = monthRows
+    .map(r => ({ name: r.campaign, type: r.type, data: aggregateVkRows([r]) }))
+    .sort((a, b) => VK_TYPE_ORDER.indexOf(a.type) - VK_TYPE_ORDER.indexOf(b.type) || b.data.cost - a.data.cost);
+  document.getElementById('vk-campaigns-table').innerHTML =
+    `<thead><tr><th>Кампания</th>${cols.map(c => `<th>${c.short || c.label}</th>`).join('')}</tr></thead>
+    <tbody>${campRows.map(r => rowHtml(r.name, VK_TYPES[r.type], r.data)).join('')}${campRows.length > 1 ? rowHtml('Итого', '', cur, 'vk-total') : ''}</tbody>`;
+}
+
+function setVkPeriod(months, btn) {
+  vkPeriod = months;
+  btn.parentElement.querySelectorAll('.direct-period-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderVkStats();
 }
 
 // Все листы одного бренда (без центров).
@@ -2626,26 +2904,31 @@ async function loadActiveData(brandIdx, centerKey) {
   const directP = b.directTab
     ? fetchCSV(sheetUrl(DIRECT_SHEET_ID, b.directTab)).then(normalizeDirectRows).catch(() => [])
     : Promise.resolve([]);
+  const vkP = b.vkGid
+    ? fetchCSV(sheetExportUrl(VK_SHEET_ID, b.vkGid)).then(normalizeVkRows).catch(() => [])
+    : Promise.resolve([]);
 
   if (!b.centers) {
-    const [set, direct_weekly] = await Promise.all([loadSheetSet(b.sheetId, SHEET_BASES, ''), directP]);
-    return { ...set, ads: adsFromPositions(set.positions), direct_weekly };
+    const [set, direct_weekly, vk_monthly] = await Promise.all([loadSheetSet(b.sheetId, SHEET_BASES, ''), directP, vkP]);
+    return { ...set, ads: adsFromPositions(set.positions), direct_weekly, vk_monthly };
   }
 
   // Общие листы клиники (keys.so + справочники) и листы нужных центров
   const centerKeys = centerKey === 'all' ? b.centers.map(c => c.key) : [centerKey];
-  const [shared, direct_weekly, ...sets] = await Promise.all([
+  const [shared, direct_weekly, vk_monthly, ...sets] = await Promise.all([
     loadSheetSet(b.sheetId, SHARED_BASES, ''),
     directP,
+    vkP,
     ...centerKeys.map(k => loadSheetSet(b.sheetId, CENTER_BASES, '_' + k)),
   ]);
   const ads = adsFromPositions(shared.positions);
-  if (centerKey !== 'all') return { ...shared, ads, ...sets[0], direct_weekly };
+  if (centerKey !== 'all') return { ...shared, ads, ...sets[0], direct_weekly, vk_monthly };
   return {
     ...aggregateCenters(shared.positions, ads, sets, b),
     pages_map: shared.pages_map,
     domains_map: shared.domains_map,
     direct_weekly,
+    vk_monthly,
   };
 }
 
