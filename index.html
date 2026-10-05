@@ -389,6 +389,7 @@ body {
 /* VK Реклама */
 .vk-card { margin-top: 16px; }
 .vk-scroll { overflow-x: auto; }
+.vk-chart-controls { padding-top: 8px; padding-bottom: 8px; border-bottom: none; justify-content: flex-end; }
 .direct-pivot-table td.vk-campaign { text-align: left; white-space: normal; min-width: 220px; }
 .vk-type { display: block; font-size: 11px; color: var(--muted); }
 .direct-pivot-table tr.vk-total td { font-weight: 500; background: var(--surface2); }
@@ -949,9 +950,9 @@ tr.row-own td { background: rgba(61,61,200,0.06) !important; }
       </div>
     </div>
 
-    <!-- Динамика: итого по всем кампаниям месяца, выбор периода -->
+    <!-- Динамика: выбор периода -->
     <div class="queries-card vk-card">
-      <div class="queries-header" style="padding-top:8px;padding-bottom:8px;border-bottom:none;justify-content:flex-end">
+      <div class="queries-header vk-chart-controls">
         <div style="display:flex;gap:4px">
           <button class="direct-period-btn" onclick="setVkPeriod(3,this)">3 мес</button>
           <button class="direct-period-btn active" onclick="setVkPeriod(6,this)">6 мес</button>
@@ -1000,7 +1001,7 @@ const BRANDS = [
     // Свои домены без отдельной вкладки и счётчика Метрики: в режиме «Все»
     // их строки keys.so входят в общую строку клиники, в таблицах подсвечиваются как свои
     extraDomains: ['https://vrach-na-dom.sadkomed.ru'] },
-  { name: 'Офтальмология', title: 'vizhu.sadkomed.ru', sheetId: '1QYetwmeWqpntHSpeu7fs6rKE-H-ojNj-P368Yl0o4BM', domain: 'https://vizhu.sadkomed.ru', directTab: 'oftalm', vkGid: '0' },
+  { name: 'Офтальмология', title: 'vizhu.sadkomed.ru', sheetId: '1QYetwmeWqpntHSpeu7fs6rKE-H-ojNj-P368Yl0o4BM', domain: 'https://vizhu.sadkomed.ru', directTab: 'oftalm', vkGid: '0', vkFollowersGid: '235501071' },
   { name: 'Здоровенок', title: 'zdorovenok.ru', sheetId: '1CsSX3R0eA0mHTM8R3VDTyjenU_buDnQwlgZ6xPVkCK0', domain: 'https://zdorovenok.sadkomed.ru', directTab: 'zdorovenok' },
   { name: 'Дино', title: 'dino.sadkomed.ru', sheetId: '1rWn4O1OG4iQQVZakrHlfEhp0bkC0aqFXu0MjcFTfkQk', domain: 'https://dino.sadkomed.ru', directTab: 'dino' },
   { name: 'Косметология', title: 'cosmetology.sadkomed.ru', sheetId: '1oBZmlZyeWIoRfuTCZfenWu1V9wr68ynvpYwz8nK6-I0', domain: 'https://cosmetology.sadkomed.ru', directTab: 'kik' },
@@ -1019,14 +1020,15 @@ function isOwnDomain(domain) {
 
 const DIRECT_SHEET_ID = '1pKM-243Fol0oPcbcyD6fTQiUBEuXQVKzWGrjMMjOMVE';
 // VK Реклама: отдельная таблица только для дашборда (без заявок с контактами
-// пациентов — ID таблицы публичен). Вкладка на бренд, адресуется по gid (BRANDS[i].vkGid)
+// пациентов — ID таблицы публичен). Вкладка на бренд, адресуется по gid (BRANDS[i].vkGid);
+// число подписчиков групп бренда — вкладка BRANDS[i].vkFollowersGid (только для графика)
 const VK_SHEET_ID = '1UeeMXV3vlpiN9kMbuvaGQF4jOIUe-ADOYCLUiWYllrQ';
 let activeBrand = 0;
 let activeCenter = 'all'; // для брендов с центрами: 'all' (агрегат) или key центра
 
 let allData = emptyData();
 function emptyData() {
-  return { positions: [], queries: [], ads: [], metrika_traffic: [], metrika_sources: [], metrika_adv: [], metrika_pages: [], pages_map: [], domains_map: [], direct_weekly: [], vk_monthly: [] };
+  return { positions: [], queries: [], ads: [], metrika_traffic: [], metrika_sources: [], metrika_adv: [], metrika_pages: [], pages_map: [], domains_map: [], direct_weekly: [], vk_monthly: [], vk_followers: new Map() };
 }
 let activeMonth = null;
 let posFilter = 0;
@@ -1038,7 +1040,7 @@ let posChart = null, trafficChart = null;
 let directLineChart = null;
 let vkLineChart = null;
 let vkPeriod = 6;
-let vkChecked = new Set(['cost', 'leads', 'subs']);
+let vkChecked = new Set(['cost', 'leads', 'subs', 'followers_delta']);
 let directPeriod = 6;
 let directCampaigns = new Set();
 let directChecked = new Set(['clicks', 'cost']);
@@ -2510,6 +2512,7 @@ function renderDirectLineChart(allMonths, allMonthlyData) {
 // empty(d) — значение не определено (нет знаменателя), точка пропускается.
 // opts.isHidden(metric) — линия есть в легенде, но скрыта (клик показывает);
 // opts.onToggle(metric, visible) — вызывается после клика по легенде.
+// metric.tip(d) — своя подпись значения в подсказке (по записи месяца), иначе fmt.
 function renderNormLineChart(canvasId, oldChart, allMonths, allMonthlyData, metrics, opts = {}) {
   if (oldChart) oldChart.destroy();
   const ctx = document.getElementById(canvasId).getContext('2d');
@@ -2522,8 +2525,10 @@ function renderNormLineChart(canvasId, oldChart, allMonths, allMonthlyData, metr
 
   const labels   = months.map(m => formatMonth(m));
   const datasets = metrics.map(metric => {
-    const raw    = monthlyData.map(d => !d || (metric.empty && metric.empty(d)) ? null : (d[metric.key] || 0));
-    const maxVal = Math.max(...raw.filter(v => v !== null), 1);
+    const field  = metric.fd || metric.key; // fd — своё поле значения (прирост подписчиков VK)
+    const raw    = monthlyData.map(d => !d || d[field] === undefined || (metric.empty && metric.empty(d)) ? null : (d[field] || 0));
+    // По максимуму модуля: при отрицательных значениях шкала не переворачивается
+    const maxVal = Math.max(...raw.filter(v => v !== null).map(Math.abs), 1);
     return {
       label: metric.label,
       hidden: opts.isHidden ? opts.isHidden(metric) : false,
@@ -2542,6 +2547,10 @@ function renderNormLineChart(canvasId, oldChart, allMonths, allMonthlyData, metr
       spanGaps: true,
     };
   });
+
+  // Отрицательные значения (напр. убыль подписчиков) — ось опускается ниже нуля шагом 20%
+  const minPct = Math.min(0, ...datasets.flatMap(ds => ds.data.filter(v => v !== null)));
+  const yMin = minPct < 0 ? Math.floor(minPct / 20) * 20 : 0;
 
   const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
   const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
@@ -2564,14 +2573,16 @@ function renderNormLineChart(canvasId, oldChart, allMonths, allMonthlyData, metr
         tooltip: { callbacks: { label: item => {
           const actual = item.dataset.actualData?.[item.dataIndex];
           const metric = metrics.find(m => m.label === item.dataset.label);
-          const formatted = (actual !== null && actual !== undefined && metric) ? metric.fmt(actual) : item.raw + '%';
+          const formatted = (actual !== null && actual !== undefined && metric)
+            ? (metric.tip ? metric.tip(monthlyData[item.dataIndex]) : metric.fmt(actual))
+            : item.raw + '%';
           return `${item.dataset.label}: ${formatted}`;
         }}}
       },
       scales: {
         x: { grid: { color: gridColor }, ticks: { font: { family: 'Golos Text', size: 11 } } },
         y: {
-          min: 0,
+          min: yMin,
           max: 120,
           grid: { color: gridColor },
           ticks: { stepSize: 20, font: { family: 'Golos Text', size: 11 }, callback: v => v <= 100 ? v + '%' : null }
@@ -2734,6 +2745,48 @@ function vkType(typeCell, name) {
 const VK_TYPES = { lead: 'Лид-форма', sub: 'Подписка', reach: 'Охват', site: 'Сайт', other: 'Прочее' };
 const VK_TYPE_ORDER = ['lead', 'sub', 'reach', 'site', 'other'];
 
+// Вкладка подписчиков: «Месяц | Группа | Всего подписчиков в группе».
+// Возвращает Map «Май 2026» → Map «Оптика» → подписчиков на конец месяца.
+function vkFollowersByMonth(rows) {
+  const map = new Map();
+  if (!rows.length) return map;
+  const keys = Object.keys(rows[0]);
+  const col = prefix => keys.find(k => k.toLowerCase().startsWith(prefix)) || prefix;
+  const cMonth = col('месяц'), cGroup = col('группа'), cTotal = col('всего');
+  rows.forEach(r => {
+    const m = (r[cMonth] || '').trim().match(/^(\d{4})-(\d{2})/);
+    const group = (r[cGroup] || '').trim();
+    const raw = String(r[cTotal] ?? '').trim();
+    if (!m || !group || !raw) return;
+    const key = formatMonth(new Date(+m[1], +m[2] - 1, 1));
+    if (!map.has(key)) map.set(key, new Map());
+    map.get(key).set(group, vkNum(raw));
+  });
+  return map;
+}
+
+function vkFollowerGroups() {
+  const set = new Set();
+  allData.vk_followers.forEach(groups => groups.forEach((_, g) => set.add(g)));
+  return [...set];
+}
+
+// Подписчики за месяц: одной группы или сумма всех (group = null); нет данных — undefined
+function vkFollowersAt(month, group) {
+  const groups = allData.vk_followers.get(formatMonth(month));
+  if (!groups) return undefined;
+  if (group) return groups.get(group);
+  return [...groups.values()].reduce((a, b) => a + b, 0);
+}
+
+// Прирост подписчиков за месяц — разница с прошлым месяцем;
+// нет данных за любой из двух месяцев — null (точки на графике нет)
+function vkFollowersDelta(month, group) {
+  const cur  = vkFollowersAt(month, group);
+  const prev = vkFollowersAt(new Date(month.getFullYear(), month.getMonth() - 1, 1), group);
+  return cur === undefined || prev === undefined ? null : cur - prev;
+}
+
 // Суммы по набору строк + производные из сумм. Лиды и подписки — разные
 // результаты, складывать их нельзя: общий «Результат» есть, только когда все
 // строки одного типа (строка кампании), иначе null.
@@ -2784,6 +2837,24 @@ const VK_METRICS = [
   { key: 'cpr',         label: 'Цена результата', short: 'Цена', fmt: vkRub2, empty: d => !d.results, campaignOnly: true },
 ];
 const vkMetric = key => VK_METRICS.find(m => m.key === key);
+// Только для графика: прирост подписчиков (вкладка vkFollowersGid) — сумма всех
+// групп (group = null, линия видна по умолчанию) и каждая группа отдельной линией
+// (по умолчанию выключена, включается в легенде). Поля в записи месяца:
+// fd:<группа> — прирост, ft:<группа> — всего; у суммы группа пустая.
+const VK_FOLLOWER_COLORS = ['#9B85C4', '#4DD0C4', '#FFA040', '#E86BC4'];
+const vkSigned = n => (n > 0 ? '+' : '') + vkInt(n);
+function vkFollowersMetric(group, i) {
+  const fd = 'fd:' + (group || ''), ft = 'ft:' + (group || '');
+  return {
+    key: group ? 'followers_delta:' + group : 'followers_delta',
+    label: group ? `Подписчики ВК: ${group.toLowerCase()}` : 'Подписчики ВК (вместе)',
+    color: group ? VK_FOLLOWER_COLORS[i % VK_FOLLOWER_COLORS.length] : '#4E8AF4',
+    fd, ft,
+    fmt: vkSigned,
+    empty: d => d[fd] === null || d[fd] === undefined,
+    tip: d => `${vkSigned(d[fd])} (всего ${vkInt(d[ft])})`,
+  };
+}
 const vkCell = (m, d, fmt = m.fmt) => m.empty && m.empty(d) ? '—' : fmt(d[m.key]);
 
 function renderVkStats() {
@@ -2812,10 +2883,30 @@ function renderVkStats() {
   // Календарный диапазон из vkPeriod месяцев по выбранный включительно
   const periodMonths = [];
   for (let i = vkPeriod - 1; i >= 0; i--) periodMonths.push(new Date(month.getFullYear(), month.getMonth() - i, 1));
-  const monthlyData = periodMonths.map(m => aggregateVkRows(rowsForMonth(rows, m)));
+  // Итог кампаний за месяц + прирост подписчиков групп. Месяц без кампаний,
+  // но с приростом — объект только с приростом (остальные линии там пустые).
+  const followerGroups = vkFollowerGroups();
+  const followerMetrics = followerGroups.length
+    ? [vkFollowersMetric(null, 0), ...(followerGroups.length > 1 ? followerGroups.map(vkFollowersMetric) : [])]
+    : [];
+  const monthlyData = periodMonths.map(m => {
+    const d = aggregateVkRows(rowsForMonth(rows, m));
+    const f = {};
+    followerMetrics.forEach(fm => {
+      const g = fm.fd.slice(3) || null;
+      f[fm.fd] = vkFollowersDelta(m, g);
+      f[fm.ft] = vkFollowersAt(m, g);
+    });
+    if (d) return { ...d, ...f };
+    return followerMetrics.some(fm => f[fm.fd] !== null) ? f : null;
+  });
 
-  // На графике — только расход, лиды и подписки (лиды/подписки — если они есть у бренда)
-  const metrics = ['cost', 'leads', 'subs'].map(vkMetric).filter(shown);
+  // На графике — расход, лиды и подписки из рекламы (если они есть у бренда)
+  // и прирост подписчиков групп: сумма и по группам (если у бренда есть вкладка подписчиков)
+  // Подписки из рекламы подписаны явно, чтобы не путать с приростом подписчиков группы
+  const metrics = ['cost', 'leads', 'subs'].map(vkMetric).filter(shown)
+    .map(m => m.key === 'subs' ? { ...m, label: 'Подписки с рекламы' } : m);
+  metrics.push(...followerMetrics);
   // Все метрики в легенде; видны выбранные, клик по легенде включает/выключает
   // линию, выбор запоминается в vkChecked (на смену месяца и периода)
   vkLineChart = renderNormLineChart('vkLineChart', vkLineChart, periodMonths, monthlyData, metrics, {
@@ -2904,31 +2995,32 @@ async function loadActiveData(brandIdx, centerKey) {
   const directP = b.directTab
     ? fetchCSV(sheetUrl(DIRECT_SHEET_ID, b.directTab)).then(normalizeDirectRows).catch(() => [])
     : Promise.resolve([]);
-  const vkP = b.vkGid
-    ? fetchCSV(sheetExportUrl(VK_SHEET_ID, b.vkGid)).then(normalizeVkRows).catch(() => [])
-    : Promise.resolve([]);
+  const vkP = Promise.all([
+    b.vkGid ? fetchCSV(sheetExportUrl(VK_SHEET_ID, b.vkGid)).then(normalizeVkRows).catch(() => []) : [],
+    b.vkFollowersGid ? fetchCSV(sheetExportUrl(VK_SHEET_ID, b.vkFollowersGid)).then(vkFollowersByMonth).catch(() => new Map()) : new Map(),
+  ]).then(([vk_monthly, vk_followers]) => ({ vk_monthly, vk_followers }));
 
   if (!b.centers) {
-    const [set, direct_weekly, vk_monthly] = await Promise.all([loadSheetSet(b.sheetId, SHEET_BASES, ''), directP, vkP]);
-    return { ...set, ads: adsFromPositions(set.positions), direct_weekly, vk_monthly };
+    const [set, direct_weekly, vk] = await Promise.all([loadSheetSet(b.sheetId, SHEET_BASES, ''), directP, vkP]);
+    return { ...set, ads: adsFromPositions(set.positions), direct_weekly, ...vk };
   }
 
   // Общие листы клиники (keys.so + справочники) и листы нужных центров
   const centerKeys = centerKey === 'all' ? b.centers.map(c => c.key) : [centerKey];
-  const [shared, direct_weekly, vk_monthly, ...sets] = await Promise.all([
+  const [shared, direct_weekly, vk, ...sets] = await Promise.all([
     loadSheetSet(b.sheetId, SHARED_BASES, ''),
     directP,
     vkP,
     ...centerKeys.map(k => loadSheetSet(b.sheetId, CENTER_BASES, '_' + k)),
   ]);
   const ads = adsFromPositions(shared.positions);
-  if (centerKey !== 'all') return { ...shared, ads, ...sets[0], direct_weekly, vk_monthly };
+  if (centerKey !== 'all') return { ...shared, ads, ...sets[0], direct_weekly, ...vk };
   return {
     ...aggregateCenters(shared.positions, ads, sets, b),
     pages_map: shared.pages_map,
     domains_map: shared.domains_map,
     direct_weekly,
-    vk_monthly,
+    ...vk,
   };
 }
 
