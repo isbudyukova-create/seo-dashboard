@@ -389,7 +389,9 @@ body {
 /* VK Реклама */
 .vk-card { margin-top: 16px; }
 .vk-scroll { overflow-x: auto; }
-.vk-chart-controls { padding-top: 8px; padding-bottom: 8px; border-bottom: none; justify-content: flex-end; }
+.vk-chart-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+.vk-chart-head .chart-card-title { margin-bottom: 0; }
+.vk-period-btns { display: flex; gap: 4px; }
 .direct-pivot-table td.vk-campaign { text-align: left; white-space: normal; min-width: 220px; }
 .vk-type { display: block; font-size: 11px; color: var(--muted); }
 .direct-pivot-table tr.vk-total td { font-weight: 500; background: var(--surface2); }
@@ -950,20 +952,16 @@ tr.row-own td { background: rgba(61,61,200,0.06) !important; }
       </div>
     </div>
 
-    <!-- Динамика: выбор периода -->
-    <div class="queries-card vk-card">
-      <div class="queries-header vk-chart-controls">
-        <div style="display:flex;gap:4px">
+    <!-- График динамики (нормализованный), период — в шапке карточки -->
+    <div class="chart-card vk-card">
+      <div class="vk-chart-head">
+        <div class="chart-card-title">Динамика по месяцам (нормализованная, 0–100%)</div>
+        <div class="vk-period-btns">
           <button class="direct-period-btn" onclick="setVkPeriod(3,this)">3 мес</button>
           <button class="direct-period-btn active" onclick="setVkPeriod(6,this)">6 мес</button>
           <button class="direct-period-btn" onclick="setVkPeriod(12,this)">12 мес</button>
         </div>
       </div>
-    </div>
-
-    <!-- График динамики (нормализованный) -->
-    <div class="chart-card vk-card">
-      <div class="chart-card-title">Динамика по месяцам (нормализованная, 0–100%)</div>
       <div class="chart-wrap"><canvas id="vkLineChart" role="img" aria-label="Динамика показателей VK Рекламы по месяцам"></canvas></div>
     </div>
 
@@ -2513,6 +2511,7 @@ function renderDirectLineChart(allMonths, allMonthlyData) {
 // opts.isHidden(metric) — линия есть в легенде, но скрыта (клик показывает);
 // opts.onToggle(metric, visible) — вызывается после клика по легенде.
 // metric.tip(d) — своя подпись значения в подсказке (по записи месяца), иначе fmt.
+// opts.legendGap — отступ (px) между легендой и областью графика.
 function renderNormLineChart(canvasId, oldChart, allMonths, allMonthlyData, metrics, opts = {}) {
   if (oldChart) oldChart.destroy();
   const ctx = document.getElementById(canvasId).getContext('2d');
@@ -2554,8 +2553,17 @@ function renderNormLineChart(canvasId, oldChart, allMonths, allMonthlyData, metr
 
   const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
   const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+  // Отступ под легендой: у Chart.js нет такой настройки — увеличиваем высоту блока легенды
+  const plugins = opts.legendGap ? [{
+    id: 'legendGap',
+    beforeInit(chart) {
+      const fit = chart.legend.fit;
+      chart.legend.fit = function () { fit.call(this); this.height += opts.legendGap; };
+    },
+  }] : [];
   return new Chart(ctx, {
     type: 'line',
+    plugins,
     data: { labels, datasets },
     options: {
       responsive: true,
@@ -2564,7 +2572,18 @@ function renderNormLineChart(canvasId, oldChart, allMonths, allMonthlyData, metr
       plugins: {
         legend: {
           display: true,
-          labels: { font: { family: 'Golos Text', size: 12 }, boxWidth: 12, padding: 16 },
+          labels: {
+            font: { family: 'Golos Text', size: 12 }, boxWidth: 12, padding: 16,
+            // Выключенная линия — бледный текст и квадратик вместо зачёркивания;
+            // включённая — цвет текста (--text) и яркий квадратик
+            generateLabels(chart) {
+              return Chart.defaults.plugins.legend.labels.generateLabels(chart).map(item => {
+                const off = item.hidden;
+                const color = chart.data.datasets[item.datasetIndex].borderColor;
+                return { ...item, hidden: false, fontColor: off ? 'rgba(123,123,157,0.45)' : '#1a1a3d', strokeStyle: off ? color + '59' : color };
+              });
+            },
+          },
           onClick(e, item, legend) {
             Chart.defaults.plugins.legend.onClick.call(this, e, item, legend);
             if (opts.onToggle) opts.onToggle(metrics[item.datasetIndex], legend.chart.isDatasetVisible(item.datasetIndex));
@@ -2910,6 +2929,7 @@ function renderVkStats() {
   // Все метрики в легенде; видны выбранные, клик по легенде включает/выключает
   // линию, выбор запоминается в vkChecked (на смену месяца и периода)
   vkLineChart = renderNormLineChart('vkLineChart', vkLineChart, periodMonths, monthlyData, metrics, {
+    legendGap: 12,
     isHidden: m => !vkChecked.has(m.key),
     onToggle: (m, visible) => { if (visible) vkChecked.add(m.key); else vkChecked.delete(m.key); },
   });
